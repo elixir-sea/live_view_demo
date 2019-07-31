@@ -30,12 +30,31 @@ defmodule TypoKart.Dictionary do
 
   @spec load(path) :: :ok when path: String.t()
   def load(file \\ "priv/dictionary/words.txt") do
+    IO.puts("loading dictionary, this may take a few minutes...")
+
     File.stream!(file)
     |> Stream.with_index()
-    |> Stream.each(fn {line, index} ->
-      :ets.insert(__MODULE__, {index, String.trim(line)})
+    |> Stream.each(fn {line, pos} ->
+      Task.start(fn ->
+        insert(pos, String.trim(line))
+      end)
     end)
     |> Stream.run()
+  end
+
+  def insert(pos, word) do
+    :ets.insert(__MODULE__, {pos, word})
+
+    prefixes =
+      String.graphemes(word)
+      |> Enum.scan(fn character, prefix ->
+        prefix <> character
+      end)
+      |> Enum.map(fn prefix ->
+        {prefix, pos}
+      end)
+
+    :ets.insert(__MODULE__.Prefix, prefixes)
   end
 
   @spec size :: integer
@@ -43,25 +62,10 @@ defmodule TypoKart.Dictionary do
     :ets.info(__MODULE__, :size)
   end
 
-  @spec word :: String.t()
-  def word() do
-    case words(1) do
-      [word] -> word
+  def get(pos) do
+    case :ets.lookup(__MODULE__, pos) do
+      [{^pos, word}] -> word
       _ -> false
     end
-  end
-
-  @spec words(integer) :: [String.t()]
-  def words(number) do
-    Stream.repeatedly(fn ->
-      index = :random.uniform(size())
-
-      case :ets.lookup(__MODULE__, index) do
-        [{^index, word}] -> word
-        _ -> false
-      end
-    end)
-    |> Stream.reject(&is_nil/1)
-    |> Enum.take(number)
   end
 end
