@@ -20,7 +20,7 @@ defmodule TypoKart.MixProject do
   def application do
     [
       mod: {TypoKart.Application, []},
-      extra_applications: [:logger, :runtime_tools]
+      extra_applications: [:logger, :runtime_tools, :eternal]
     ]
   end
 
@@ -38,6 +38,7 @@ defmodule TypoKart.MixProject do
       {:phoenix_ecto, "~> 4.0"},
       {:phoenix_live_view, github: "phoenixframework/phoenix_live_view"},
       {:ecto_sql, "~> 3.1"},
+      {:eternal, "~> 1.2"},
       {:postgrex, ">= 0.0.0"},
       {:phoenix_html, "~> 2.11"},
       {:phoenix_live_reload, "~> 1.2", only: :dev},
