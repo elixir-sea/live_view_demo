@@ -21,7 +21,11 @@ defmodule TypoKart.Application do
     # See https://hexdocs.pm/elixir/Supervisor.html
     # for other strategies and supported options
     opts = [strategy: :one_for_one, name: TypoKart.Supervisor]
-    Supervisor.start_link(children, opts)
+
+    with {:ok, pid} <- Supervisor.start_link(children, opts),
+         :ok <- TypoKart.Dictionary.load() do
+      {:ok, pid}
+    end
   end
 
   # Tell Phoenix to update the endpoint configuration
