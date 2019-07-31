@@ -9,19 +9,21 @@ defmodule TypoKart.Dictionary do
     Supervisor.start_link(__MODULE__, :ok, opts)
   end
 
+  def child_spec([]) do
+    %{
+      id: __MODULE__,
+      start:
+        {Eternal, :start_link,
+         [
+           __MODULE__,
+           [:set, :compressed, read_concurrency: true],
+           [name: __MODULE__, quiet: true]
+         ]}
+    }
+  end
+
   def init(:ok) do
-    children = [
-      %{
-        id: __MODULE__,
-        start:
-          {Eternal, :start_link,
-           [
-             __MODULE__,
-             [:set, :compressed, read_concurrency: true],
-             [name: __MODULE__, quiet: true]
-           ]}
-      }
-    ]
+    children = [__MODULE__]
 
     Supervisor.init(children, strategy: :one_for_one)
   end
