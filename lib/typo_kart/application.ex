@@ -10,6 +10,8 @@ defmodule TypoKart.Application do
     children = [
       # Start the Ecto repository
       TypoKart.Repo,
+      # Start the dictionary
+      TypoKart.Dictionary,
       # Start the endpoint when the application starts
       TypoKartWeb.Endpoint
       # Starts a worker by calling: TypoKart.Worker.start_link(arg)
