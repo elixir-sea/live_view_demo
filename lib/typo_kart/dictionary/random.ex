@@ -6,6 +6,7 @@ defmodule TypoKart.Dictionary.Random do
     |> TypoKart.Dictionary.get()
   end
 
+  @spec words :: Stream.t()
   def words() do
     Stream.repeatedly(&word/0)
   end

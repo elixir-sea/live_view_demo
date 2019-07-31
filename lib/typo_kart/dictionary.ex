@@ -5,27 +5,25 @@ defmodule TypoKart.Dictionary do
 
   use Supervisor
 
+  alias TypoKart.Dictionary.Index
+  alias TypoKart.Dictionary.Lookup
+  alias TypoKart.Dictionary.Prefix
+  alias TypoKart.Dictionary.Random
+
   def start_link(opts) do
     Supervisor.start_link(__MODULE__, :ok, opts)
   end
 
-  def child_spec([]) do
-    %{
-      id: __MODULE__,
-      start:
-        {Eternal, :start_link,
-         [
-           __MODULE__,
-           [:set, :compressed, read_concurrency: true],
-           [name: __MODULE__, quiet: true]
-         ]}
-    }
-  end
-
   def init(:ok) do
-    children = [__MODULE__]
-
-    Supervisor.init(children, strategy: :one_for_one)
+    Supervisor.init(
+      [
+        Index,
+        Lookup,
+        Prefix
+      ],
+      name: __MODULE__,
+      strategy: :one_for_one
+    )
   end
 
   @spec load(path) :: :ok when path: String.t()
@@ -35,37 +33,50 @@ defmodule TypoKart.Dictionary do
     File.stream!(file)
     |> Stream.with_index()
     |> Stream.each(fn {line, pos} ->
+      word = String.trim(line)
+      IO.puts(word)
+
       Task.start(fn ->
-        insert(pos, String.trim(line))
+        insert(pos, word)
       end)
     end)
     |> Stream.run()
   end
 
+  @spec insert(non_neg_integer, String.t()) :: true
   def insert(pos, word) do
-    :ets.insert(__MODULE__, {pos, word})
-
-    prefixes =
-      String.graphemes(word)
-      |> Enum.scan(fn character, prefix ->
-        prefix <> character
-      end)
-      |> Enum.map(fn prefix ->
-        {prefix, pos}
-      end)
-
-    :ets.insert(__MODULE__.Prefix, prefixes)
+    Index.insert(pos, word)
+    Lookup.insert(pos, word)
+    Prefix.insert(pos, word)
   end
 
-  @spec size :: integer
+  @spec size :: non_neg_integer
   def size() do
-    :ets.info(__MODULE__, :size)
+    Index.size()
   end
 
+  @spec get(non_neg_integer) :: false | String.t()
   def get(pos) do
-    case :ets.lookup(__MODULE__, pos) do
-      [{^pos, word}] -> word
-      _ -> false
-    end
+    Index.lookup(pos)
+  end
+
+  @spec member?(String.t()) :: boolean
+  def member?(word) do
+    Lookup.word?(word)
+  end
+
+  @spec scan(String.t()) :: [String.t()]
+  def scan(prefix) do
+    Prefix.lookup(prefix)
+  end
+
+  @spec word() :: [String.t()]
+  def word() do
+    Random.word()
+  end
+
+  @spec words() :: Stream.t()
+  def words() do
+    Random.words()
   end
 end

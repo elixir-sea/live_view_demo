@@ -12,8 +12,6 @@ defmodule TypoKart.Application do
       TypoKart.Repo,
       # Start the dictionary
       TypoKart.Dictionary,
-      # Start the dictionary lookup
-      TypoKart.Dictionary.Prefix,
       # Start the endpoint when the application starts
       TypoKartWeb.Endpoint
       # Starts a worker by calling: TypoKart.Worker.start_link(arg)
@@ -28,6 +26,8 @@ defmodule TypoKart.Application do
          :ok <- TypoKart.Dictionary.load() do
       {:ok, pid}
     end
+
+    # Supervisor.start_link(children, opts)
   end
 
   # Tell Phoenix to update the endpoint configuration
