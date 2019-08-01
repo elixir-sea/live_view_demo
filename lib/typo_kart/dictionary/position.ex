@@ -1,4 +1,4 @@
-defmodule TypoKart.Dictionary.Index do
+defmodule TypoKart.Dictionary.Position do
   @moduledoc """
   In-memory access to set of dictionary words by numeric index.
   """

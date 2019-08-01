@@ -5,7 +5,7 @@ defmodule TypoKart.Dictionary do
 
   use Supervisor
 
-  alias TypoKart.Dictionary.Index
+  alias TypoKart.Dictionary.Position
   alias TypoKart.Dictionary.Prefix
   alias TypoKart.Dictionary.Random
   alias TypoKart.Dictionary.Word
@@ -23,7 +23,7 @@ defmodule TypoKart.Dictionary do
   def init(:ok) do
     Supervisor.init(
       [
-        Index,
+        Position,
         Prefix,
         Word
       ],
@@ -50,7 +50,7 @@ defmodule TypoKart.Dictionary do
 
   @spec insert(position, word) :: true
   def insert(position, word) do
-    Index.insert(position, word)
+    Position.insert(position, word)
     Prefix.insert(position, word)
     Word.insert(position, word)
   end
@@ -58,13 +58,13 @@ defmodule TypoKart.Dictionary do
   @doc "Returns size of dictionary."
   @spec size :: non_neg_integer
   def size() do
-    Index.size()
+    Position.size()
   end
 
   @doc "Returns word at `position` in dictionary."
   @spec get(position) :: false | word
   def get(position) do
-    Index.lookup(position)
+    Position.lookup(position)
   end
 
   @doc "Returns truthy if `word` exists in dictionary."
