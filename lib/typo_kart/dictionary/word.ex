@@ -1,4 +1,4 @@
-defmodule TypoKart.Dictionary.Lookup do
+defmodule TypoKart.Dictionary.Word do
   @moduledoc """
   In-memory access to set of dictionary words by word.
   """
@@ -44,8 +44,8 @@ defmodule TypoKart.Dictionary.Lookup do
     :ets.insert(__MODULE__, {word, position})
   end
 
-  @spec position(Dictionary.word()) :: Dictionary.position() | false
-  def position(word) do
+  @spec lookup(Dictionary.word()) :: Dictionary.position() | false
+  def lookup(word) do
     case :ets.lookup(__MODULE__, word) do
       [{^word, position}] -> position
       _ -> false

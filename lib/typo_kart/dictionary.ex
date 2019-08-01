@@ -6,9 +6,9 @@ defmodule TypoKart.Dictionary do
   use Supervisor
 
   alias TypoKart.Dictionary.Index
-  alias TypoKart.Dictionary.Lookup
   alias TypoKart.Dictionary.Prefix
   alias TypoKart.Dictionary.Random
+  alias TypoKart.Dictionary.Word
 
   @type word :: String.t()
   @type prefix :: String.t()
@@ -24,8 +24,8 @@ defmodule TypoKart.Dictionary do
     Supervisor.init(
       [
         Index,
-        Lookup,
-        Prefix
+        Prefix,
+        Word
       ],
       strategy: :one_for_one
     )
@@ -51,8 +51,8 @@ defmodule TypoKart.Dictionary do
   @spec insert(position, word) :: true
   def insert(position, word) do
     Index.insert(position, word)
-    Lookup.insert(position, word)
     Prefix.insert(position, word)
+    Word.insert(position, word)
   end
 
   @doc "Returns size of dictionary."
@@ -70,7 +70,7 @@ defmodule TypoKart.Dictionary do
   @doc "Returns truthy if `word` exists in dictionary."
   @spec member?(word) :: boolean
   def member?(word) do
-    Lookup.exists?(word)
+    Word.exists?(word)
   end
 
   @doc "Returns words starting with `prefix`."
