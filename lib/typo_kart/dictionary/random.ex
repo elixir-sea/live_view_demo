@@ -1,16 +1,18 @@
 defmodule TypoKart.Dictionary.Random do
   @moduledoc """
-  Random access to dictionary.
+  Random access to in-memory dictionary words.
   """
 
-  @spec word :: String.t()
+  alias TypoKart.Dictionary
+
+  @spec word :: Dictionary.word()
   def word() do
-    TypoKart.Dictionary.size()
+    Dictionary.size()
     |> :random.uniform()
-    |> TypoKart.Dictionary.get()
+    |> Dictionary.get()
   end
 
-  @spec words :: Stream.t()
+  @spec words :: Stream.t(Dictionary.word())
   def words() do
     Stream.repeatedly(&word/0)
   end

@@ -10,6 +10,10 @@ defmodule TypoKart.Dictionary do
   alias TypoKart.Dictionary.Prefix
   alias TypoKart.Dictionary.Random
 
+  @type word :: String.t()
+  @type prefix :: String.t()
+  @type position :: non_neg_integer
+
   @spec start_link(Supervisor.options()) :: :ignore | {:error, any} | {:ok, pid}
   def start_link(opts) do
     Supervisor.start_link(__MODULE__, :ok, opts)
@@ -33,50 +37,60 @@ defmodule TypoKart.Dictionary do
 
     File.stream!(file)
     |> Stream.with_index()
-    |> Stream.each(fn {line, pos} ->
+    |> Stream.each(fn {line, position} ->
       word = String.trim(line)
       IO.puts(word)
 
       Task.start(fn ->
-        insert(pos, word)
+        insert(position, word)
       end)
     end)
     |> Stream.run()
   end
 
-  @spec insert(non_neg_integer, String.t()) :: true
-  def insert(pos, word) do
-    Index.insert(pos, word)
-    Lookup.insert(pos, word)
-    Prefix.insert(pos, word)
+  @spec insert(position, word) :: true
+  def insert(position, word) do
+    Index.insert(position, word)
+    Lookup.insert(position, word)
+    Prefix.insert(position, word)
   end
 
+  @doc "Returns size of dictionary."
   @spec size :: non_neg_integer
   def size() do
     Index.size()
   end
 
-  @spec get(non_neg_integer) :: false | String.t()
-  def get(pos) do
-    Index.lookup(pos)
+  @doc "Returns word at `position` in dictionary."
+  @spec get(position) :: false | word
+  def get(position) do
+    Index.lookup(position)
   end
 
-  @spec member?(String.t()) :: boolean
+  @doc "Returns truthy if `word` exists in dictionary."
+  @spec member?(word) :: boolean
   def member?(word) do
-    Lookup.word?(word)
+    Lookup.exists?(word)
   end
 
-  @spec scan(String.t(), bool) :: [String.t()]
-  def scan(prefix, exclude_self \\ false) do
-    Prefix.lookup(prefix, exclude_self)
+  @doc "Returns words starting with `prefix`."
+  @spec scan(prefix, exclude) :: [word] when exclude: bool
+  def scan(prefix, exclude \\ false) do
+    if exclude do
+      Prefix.lookup(prefix) -- [prefix]
+    else
+      Prefix.lookup(prefix)
+    end
   end
 
-  @spec word() :: String.t()
+  @doc "Returns random dictionary word."
+  @spec word() :: word
   def word() do
     Random.word()
   end
 
-  @spec words() :: Stream.t()
+  @doc "Returns stream of random dictionary words."
+  @spec words() :: Stream.t(word)
   def words() do
     Random.words()
   end

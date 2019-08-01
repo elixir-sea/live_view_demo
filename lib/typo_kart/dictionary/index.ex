@@ -1,9 +1,11 @@
 defmodule TypoKart.Dictionary.Index do
   @moduledoc """
-  In-memory access to dictionary by numeric index.
+  In-memory access to set of dictionary words by numeric index.
   """
 
   use Supervisor
+
+  alias TypoKart.Dictionary
 
   @spec start_link(Supervisor.options()) :: :ignore | {:error, any} | {:ok, pid}
   def start_link(opts) do
@@ -37,15 +39,15 @@ defmodule TypoKart.Dictionary.Index do
     :ets.info(__MODULE__, :size)
   end
 
-  @spec insert(non_neg_integer, String.t()) :: true
-  def insert(pos, word) do
-    :ets.insert(__MODULE__, {pos, word})
+  @spec insert(Dictionary.position(), Dictionary.word()) :: true
+  def insert(position, word) do
+    :ets.insert(__MODULE__, {position, word})
   end
 
-  @spec lookup(non_neg_integer) :: String.t() | false
-  def lookup(pos) do
-    case :ets.lookup(__MODULE__, pos) do
-      [{^pos, word}] -> word
+  @spec lookup(Dictionary.position()) :: Dictionary.word() | false
+  def lookup(position) do
+    case :ets.lookup(__MODULE__, position) do
+      [{^position, word}] -> word
       _ -> false
     end
   end

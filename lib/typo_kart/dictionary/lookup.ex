@@ -1,9 +1,11 @@
 defmodule TypoKart.Dictionary.Lookup do
   @moduledoc """
-  In-memory access to dictionary by word.
+  In-memory access to set of dictionary words by word.
   """
 
   use Supervisor
+
+  alias TypoKart.Dictionary
 
   @spec start_link(Supervisor.options()) :: :ignore | {:error, any} | {:ok, pid}
   def start_link(opts) do
@@ -37,21 +39,21 @@ defmodule TypoKart.Dictionary.Lookup do
     :ets.info(__MODULE__, :size)
   end
 
-  @spec insert(non_neg_integer, String.t()) :: true
-  def insert(pos, word) do
-    :ets.insert(__MODULE__, {word, pos})
+  @spec insert(Dictionary.position(), Dictionary.word()) :: true
+  def insert(position, word) do
+    :ets.insert(__MODULE__, {word, position})
   end
 
-  @spec pos(String.t()) :: non_neg_integer | false
-  def pos(word) do
+  @spec position(Dictionary.word()) :: Dictionary.position() | false
+  def position(word) do
     case :ets.lookup(__MODULE__, word) do
-      [{^word, pos}] -> pos
+      [{^word, position}] -> position
       _ -> false
     end
   end
 
-  @spec word?(String.t()) :: bool
-  def word?(word) do
+  @spec exists?(Dictionary.word()) :: bool
+  def exists?(word) do
     :ets.member(__MODULE__, word)
   end
 end

@@ -1,9 +1,11 @@
 defmodule TypoKart.Dictionary.Prefix do
   @moduledoc """
-  In-memory access to dictionary by prefix.
+  In-memory access to bag of dictionary words by prefix.
   """
 
   use Supervisor
+
+  alias TypoKart.Dictionary
 
   @spec start_link(Supervisor.options()) :: :ignore | {:error, any} | {:ok, pid}
   def start_link(opts) do
@@ -37,31 +39,24 @@ defmodule TypoKart.Dictionary.Prefix do
     :ets.info(__MODULE__, :size)
   end
 
-  @spec insert(non_neg_integer, String.t()) :: true
-  def insert(pos, word) do
+  @spec insert(Dictionary.position(), Dictionary.word()) :: true
+  def insert(position, word) do
     prefixes =
       String.graphemes(word)
       |> Enum.scan(fn character, prefix ->
         prefix <> character
       end)
       |> Enum.map(fn prefix ->
-        {prefix, pos}
+        {prefix, position}
       end)
 
     :ets.insert(__MODULE__, prefixes)
   end
 
-  @spec lookup(String.t()) :: [String.t()]
-  def lookup(prefix, exclude_self \\ False) do
-    results =
-      Enum.map(:ets.lookup(__MODULE__, prefix), fn {^prefix, pos} ->
-        TypoKart.Dictionary.get(pos)
-      end)
-
-    if exclude_self do
-      results -- [prefix]
-    else
-      results
-    end
+  @spec lookup(Dictionary.prefix()) :: [Dictionary.word()]
+  def lookup(prefix) do
+    Enum.map(:ets.lookup(__MODULE__, prefix), fn {^prefix, position} ->
+      TypoKart.Dictionary.get(position)
+    end)
   end
 end
