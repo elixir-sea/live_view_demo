@@ -51,4 +51,9 @@ defmodule TypoKart.Dictionary.Index do
       _ -> false
     end
   end
+
+  @spec exists?(Dictionary.position()) :: bool
+  def exists?(position) do
+    :ets.member(__MODULE__, position)
+  end
 end

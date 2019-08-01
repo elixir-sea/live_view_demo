@@ -59,4 +59,9 @@ defmodule TypoKart.Dictionary.Prefix do
       TypoKart.Dictionary.get(position)
     end)
   end
+
+  @spec exists?(Dictionary.prefix()) :: bool
+  def exists?(prefix) do
+    :ets.member(__MODULE__, prefix)
+  end
 end
