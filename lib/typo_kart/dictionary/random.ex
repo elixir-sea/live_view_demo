@@ -1,4 +1,8 @@
 defmodule TypoKart.Dictionary.Random do
+  @moduledoc """
+  Random access to dictionary.
+  """
+
   @spec word :: String.t()
   def word() do
     TypoKart.Dictionary.size()

@@ -10,10 +10,12 @@ defmodule TypoKart.Dictionary do
   alias TypoKart.Dictionary.Prefix
   alias TypoKart.Dictionary.Random
 
+  @spec start_link(Supervisor.options()) :: :ignore | {:error, any} | {:ok, pid}
   def start_link(opts) do
     Supervisor.start_link(__MODULE__, :ok, opts)
   end
 
+  @spec init(:ok) :: {:ok, {:supervisor.sup_flags(), [:supervisor.child_spec()]}} | :ignore
   def init(:ok) do
     Supervisor.init(
       [
@@ -21,7 +23,6 @@ defmodule TypoKart.Dictionary do
         Lookup,
         Prefix
       ],
-      name: __MODULE__,
       strategy: :one_for_one
     )
   end
@@ -70,7 +71,7 @@ defmodule TypoKart.Dictionary do
     Prefix.lookup(prefix)
   end
 
-  @spec word() :: [String.t()]
+  @spec word() :: String.t()
   def word() do
     Random.word()
   end

@@ -1,14 +1,24 @@
 defmodule TypoKart.Dictionary.Prefix do
   @moduledoc """
-  Interface to access to the TypoKart dictionary of words by prefix.
+  In-memory access to dictionary by prefix.
   """
 
   use Supervisor
 
+  @spec start_link(Supervisor.options()) :: :ignore | {:error, any} | {:ok, pid}
   def start_link(opts) do
     Supervisor.start_link(__MODULE__, :ok, opts)
   end
 
+  @spec init(:ok) :: {:ok, {:supervisor.sup_flags(), [:supervisor.child_spec()]}} | :ignore
+  def init(:ok) do
+    Supervisor.init(
+      [__MODULE__],
+      strategy: :one_for_one
+    )
+  end
+
+  @spec child_spec([]) :: Supervisor.child_spec()
   def child_spec([]) do
     %{
       id: __MODULE__,
@@ -42,9 +52,16 @@ defmodule TypoKart.Dictionary.Prefix do
   end
 
   @spec lookup(String.t()) :: [String.t()]
-  def lookup(prefix) do
-    Enum.map(:ets.lookup(__MODULE__, prefix), fn {^prefix, pos} ->
-      TypoKart.Dictionary.get(pos)
-    end)
+  def lookup(prefix, exclude_self \\ False) do
+    results =
+      Enum.map(:ets.lookup(__MODULE__, prefix), fn {^prefix, pos} ->
+        TypoKart.Dictionary.get(pos)
+      end)
+
+    if exclude_self do
+      results -- [prefix]
+    else
+      results
+    end
   end
 end
