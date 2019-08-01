@@ -66,9 +66,9 @@ defmodule TypoKart.Dictionary do
     Lookup.word?(word)
   end
 
-  @spec scan(String.t()) :: [String.t()]
-  def scan(prefix) do
-    Prefix.lookup(prefix)
+  @spec scan(String.t(), bool) :: [String.t()]
+  def scan(prefix, exclude_self \\ false) do
+    Prefix.lookup(prefix, exclude_self)
   end
 
   @spec word() :: String.t()
