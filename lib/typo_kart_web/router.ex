@@ -20,6 +20,7 @@ defmodule TypoKartWeb.Router do
     get "/", PageController, :index
     live "/clock", ClockLive
     live "/race", RaceLive
+    live "/lobby", LobbyLive
   end
 
   # Other scopes may use custom stacks.
