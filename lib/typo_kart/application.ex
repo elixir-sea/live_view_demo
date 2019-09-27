@@ -10,7 +10,8 @@ defmodule TypoKart.Application do
     children = [
       # Start the endpoint when the application starts
       TypoKartWeb.Endpoint,
-      TypoKart.GameMaster
+      TypoKart.GameMaster,
+      TypoKart.Lobby
       # Starts a worker by calling: TypoKart.Worker.start_link(arg)
       # {TypoKart.Worker, arg},
     ]
