@@ -8,15 +8,15 @@ defmodule TypoKartWeb.LobbyLive do
   end
 
   def mount(_session, socket) do
+
     if connected?(socket) do
-
       id=UUID.uuid1()
-      Lobby.join_lobby(self(), id)
-
+      %{games: games, players: players}=Lobby.join_lobby(self(), id)
       :timer.send_interval(  1_000, self(), :tick)
+      {:ok, assign(socket, games: games, players: players) }
+    else
+      {:ok, assign(socket, games: %{}, players: %{}) }
     end
-    %{games: games, players: players}=Lobby.list()
-    {:ok, assign(socket, players: players, games: games) }
   end
 
   def handle_info(:tick, socket) do
@@ -24,12 +24,8 @@ defmodule TypoKartWeb.LobbyLive do
     {:noreply, assign(socket, players: players, games: games) }
   end
 
-
   def handle_event( "join", %{"game" => game, "pos" => pos} , socket) do
     %{games: games, players: players}=Lobby.join_game(self(), game, pos)
-    #IO.inspect "main game"
-    #IO.inspect games
-    #IO.inspect "main game"
     {:noreply, assign(socket, players: players, games: games) }
   end
 
