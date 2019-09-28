@@ -9,6 +9,10 @@ defmodule TypoKart.GameMaster do
     Player
   }
 
+  @player_count_limit 3
+
+  @player_colors ["orange", "blue", "green"]
+
   def start_link(_init \\ nil) do
     GenServer.start_link(__MODULE__, nil, name: __MODULE__)
   end
@@ -32,7 +36,12 @@ defmodule TypoKart.GameMaster do
 
   def handle_call({:new_game, game}, _from, state) do
     id = UUID.uuid1()
-    game = initialize_char_ownership(game)
+
+    game =
+      game
+      |> initialize_char_ownership()
+      |> initialize_starting_positions()
+
     {:reply, id, put_in(state, [:games, id], game)}
   end
 
@@ -58,6 +67,40 @@ defmodule TypoKart.GameMaster do
     else
       _bad ->
         {:reply, {:error, "bad key_code"}, state}
+    end
+  end
+
+  def handle_call({:add_player, game_id, %Player{} = player}, _from, state) do
+    case Kernel.get_in(state, [:games, game_id]) do
+      %Game{players: players} when length(players) >= @player_count_limit ->
+        {:reply,
+         {:error,
+          "This game has already reached the maximum of players allowed: #{@player_count_limit}."},
+         state}
+
+      %Game{players: players} = game ->
+        with player <- assign_player_color(game, player) |> Map.put(:id, UUID.uuid1()),
+             game <- Map.put(game, :players, players ++ [player]),
+             new_state <- put_in(state, [:games, game_id], game),
+             do: {:reply, {:ok, game, player}, new_state}
+
+      _ ->
+        {:reply, {:error, "game not found"}, state}
+    end
+  end
+
+  def handle_call({:remove_player, game_id, player_id}, _from, state) do
+    with %Game{players: players} = game <- Kernel.get_in(state, [:games, game_id]),
+         updated_players <- Enum.reject(players, &(&1.id == player_id)),
+         updated_game <- Map.put(game, :players, updated_players),
+         updated_state <- put_in(state, [:games, game_id], updated_game) do
+      {:reply, {:ok, updated_game}, updated_state}
+    else
+      nil ->
+        {:reply, {:error, "game not found"}, state}
+
+      _ ->
+        {:reply, {:error, "unknown error"}, state}
     end
   end
 
@@ -94,6 +137,16 @@ defmodule TypoKart.GameMaster do
   def advance(game_id, player_index, key_code)
       when is_binary(game_id) and is_integer(player_index) and is_integer(key_code) do
     GenServer.call(__MODULE__, {:advance_game, game_id, player_index, key_code})
+  end
+
+  @spec add_player(binary, Player.t()) :: {:ok, Game.t(), Player.t()} | {:error, binary()}
+  def add_player(game_id, player \\ %Player{}) when is_binary(game_id) do
+    GenServer.call(__MODULE__, {:add_player, game_id, player})
+  end
+
+  @spec remove_player(binary, binary()) :: {:ok, Game.t()} | {:error, binary()}
+  def remove_player(game_id, player_id) when is_binary(game_id) and is_binary(player_id) do
+    GenServer.call(__MODULE__, {:remove_player, game_id, player_id})
   end
 
   @spec next_chars(Course.t(), PathCharIndex.t()) :: list(PathCharIndex.t())
@@ -247,7 +300,13 @@ defmodule TypoKart.GameMaster do
               acc
               | cur_owner: owner,
                 cur_segment_start: index,
-                segments: segments ++ [{cur_owner, cur_segment_start..if(cur_segment_start < index, do: index - 1, else: index), false}]
+                segments:
+                  segments ++
+                    [
+                      {cur_owner,
+                       cur_segment_start..if(cur_segment_start < index, do: index - 1, else: index),
+                       false}
+                    ]
             }
 
           # When we're somewhere in the middle, the owner has changed, and it is a next-char
@@ -337,5 +396,36 @@ defmodule TypoKart.GameMaster do
         |> List.replace_at(char_index, player_index)
       )
     )
+  end
+
+  defp initialize_starting_positions(
+         %Game{
+           players: players,
+           course: %Course{start_positions_by_player_count: start_positions}
+         } = game
+       ) do
+    %Game{
+      game
+      | players:
+          Enum.with_index(players)
+          |> Enum.map(fn {player, player_index} ->
+            %Player{
+              player
+              | cur_path_char_indices: [
+                  Enum.at(start_positions, length(players) - 1)
+                  |> Enum.at(player_index)
+                ]
+            }
+          end)
+    }
+  end
+
+  defp assign_player_color(%Game{players: players}, %Player{} = player) do
+    with used_colors <- Enum.map(players, & &1.color),
+         available_colors <-
+           Enum.reject(@player_colors, fn possible_color ->
+             Enum.any?(used_colors, &(&1 == possible_color))
+           end),
+         do: Map.put(player, :color, Enum.random(available_colors))
   end
 end
