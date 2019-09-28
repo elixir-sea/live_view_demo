@@ -13,6 +13,8 @@ defmodule TypoKart.GameMaster do
 
   @player_colors ["orange", "blue", "green"]
 
+  @game_run_duration_seconds 180
+
   def start_link(_init \\ nil) do
     GenServer.start_link(__MODULE__, nil, name: __MODULE__)
   end
@@ -35,14 +37,37 @@ defmodule TypoKart.GameMaster do
   end
 
   def handle_call({:new_game, game}, _from, state) do
-    id = UUID.uuid1()
+    with game_id <- UUID.uuid1(),
+         game = %Game{} <- initialize_game(game),
+         %{} = updated_state <- put_in(state, [:games, game_id], game) do
+      {:reply, game_id, updated_state}
+    else
+      {:error, :invalid_player_color} ->
+        {:reply, {:error, "invalid player color"}, state}
 
-    game =
-      game
-      |> initialize_char_ownership()
-      |> initialize_starting_positions()
+      {:error, :duplicate_player_id} ->
+        {:reply, {:error, "duplicate player id"}, state}
 
-    {:reply, id, put_in(state, [:games, id], game)}
+      {:error, :duplicate_player_color} ->
+        {:reply, {:error, "duplicate player color"}, state}
+    end
+  end
+
+  def handle_call({:start_game, game_id}, _from, state) do
+    with %Game{} = game <- Kernel.get_in(state, [:games, game_id]),
+         now <- DateTime.utc_now() |> DateTime.truncate(:second),
+         end_time <- DateTime.add(now, @game_run_duration_seconds, :second),
+         updated_game <- game |> Map.put(:state, :running) |> Map.put(:end_time, end_time),
+         updated_state <- put_in(state, [:games, game_id], updated_game) do
+      # TODO: schedule an end_game @game_run_duration_seconds from now
+      {:reply, {:ok, updated_game}, updated_state}
+    else
+      nil ->
+        {:reply, {:error, "game not found"}, state}
+
+      _ ->
+        {:reply, {:error, "unknown error"}, state}
+    end
   end
 
   def handle_call({:advance_game, game_id, player_index, key_code}, _from, state) do
@@ -79,10 +104,21 @@ defmodule TypoKart.GameMaster do
          state}
 
       %Game{players: players} = game ->
-        with player <- assign_player_color(game, player) |> Map.put(:id, UUID.uuid1()),
+        with %Player{} = player <- player_color(game, player),
+             %Player{} = player <- player_id(player, players),
              game <- Map.put(game, :players, players ++ [player]),
-             new_state <- put_in(state, [:games, game_id], game),
-             do: {:reply, {:ok, game, player}, new_state}
+             new_state <- put_in(state, [:games, game_id], game) do
+          {:reply, {:ok, game, player}, new_state}
+        else
+          {:error, :invalid_player_color} ->
+            {:reply, {:error, "invalid player color"}, state}
+
+          {:error, :duplicate_player_id} ->
+            {:reply, {:error, "duplicate player id"}, state}
+
+          {:error, :duplicate_player_color} ->
+            {:reply, {:error, "duplicate player color"}, state}
+        end
 
       _ ->
         {:reply, {:error, "game not found"}, state}
@@ -117,6 +153,11 @@ defmodule TypoKart.GameMaster do
   @spec new_game(Game.t()) :: binary()
   def new_game(%Game{} = game \\ %Game{}) do
     GenServer.call(__MODULE__, {:new_game, game})
+  end
+
+  @spec start_game(binary()) :: {:ok, Game.t()} | {:error, binary()}
+  def start_game(game_id) when is_binary(game_id) do
+    GenServer.call(__MODULE__, {:start_game, game_id})
   end
 
   @spec char_from_course(Course.t(), PathCharIndex.t()) :: char() | nil
@@ -420,12 +461,72 @@ defmodule TypoKart.GameMaster do
     }
   end
 
-  defp assign_player_color(%Game{players: players}, %Player{} = player) do
+  defp player_color(%Game{}, %Player{color: color})
+       when color != "" and color not in @player_colors,
+       do: {:error, :invalid_player_color}
+
+  defp player_color(%Game{players: players}, %Player{color: color} = player)
+       when color != "" do
+    other_players = Enum.filter(players, &(&1 != player))
+
+    if Enum.any?(other_players, &(&1.color == color)) do
+      {:error, :duplicate_player_color}
+    else
+      player
+    end
+  end
+
+  defp player_color(%Game{players: players}, %Player{} = player) do
     with used_colors <- Enum.map(players, & &1.color),
          available_colors <-
            Enum.reject(@player_colors, fn possible_color ->
              Enum.any?(used_colors, &(&1 == possible_color))
            end),
          do: Map.put(player, :color, Enum.random(available_colors))
+  end
+
+  defp player_color(_, {:error, _} = e), do: e
+
+  # When a player_id has already been assigned
+  defp player_id(%Player{id: id} = player, players)
+       when is_list(players) and id != "" do
+    if Enum.any?(players, &(&1.id == id)) do
+      {:error, :duplicate_player_id}
+    else
+      player
+    end
+  end
+
+  defp player_id(%Player{} = player, _), do: Map.put(player, :id, UUID.uuid1())
+
+  defp player_id({:error, _} = e, _), do: e
+
+  defp initialize_players_id_color(%Game{players: players} = game) do
+    initialized_players =
+      players
+      |> Enum.reduce_while([], fn player, acc ->
+        case player_color(game, player) |> player_id(players) do
+          {:error, _} = e ->
+            {:halt, e}
+
+          good ->
+            {:cont, acc ++ [good]}
+        end
+      end)
+
+    case initialized_players do
+      {:error, e} = e ->
+        e
+
+      players ->
+        Map.put(game, :players, initialized_players)
+    end
+  end
+
+  defp initialize_game(%Game{} = game) do
+    game
+    |> initialize_char_ownership()
+    |> initialize_starting_positions()
+    |> initialize_players_id_color()
   end
 end
