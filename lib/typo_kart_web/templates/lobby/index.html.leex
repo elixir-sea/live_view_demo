@@ -23,19 +23,19 @@
 <% end %>
 
 <%=if v["pos_1"] == nil do %>
-<td><button class="button button-clear" phx-click="join", phx-value-game="<%=k %>", phx-value-pos="pos_1">Join</button></td>
+<td><button class="button button-clear" phx-click="join" phx-value-game="<%=k %>" phx-value-pos="pos_1">Join</button></td>
 <% else %>
 <td><button class="button button-outline"><%=v["pos_1"] %></button></td>
 <% end %>
 
 <%=if v["pos_2"] == nil do %>
-<td><button class="button button-clear" phx-click="join", phx-value-game="<%=k %>", phx-value-pos="pos_2">Join</button></td>
+<td><button class="button button-clear" phx-click="join" phx-value-game="<%=k %>" phx-value-pos="pos_2">Join</button></td>
 <% else %>
 <td><button class="button button-outline"><%=v["pos_2"] %></button></td>
 <% end %>
 
 <%=if v["pos_3"] == nil do %>
-<td><button class="button button-clear" phx-click="join", phx-value-game="<%=k %>", phx-value-pos="pos_3">Join</button></td>
+<td><button class="button button-clear" phx-click="join" phx-value-game="<%=k %>" phx-value-pos="pos_3">Join</button></td>
 <% else %>
 <td><button class="button button-outline"><%=v["pos_3"] %></button></td>
 <% end %>
