@@ -1,5 +1,102 @@
 /* This file is for your main application css. */
 
-@import "./phoenix.css";
+/* @import "./phoenix.css"; */
 @import "../../deps/phoenix_live_view/assets/css/live_view.css";
 
+:root {
+  --dark-grey: #606060;
+  --black: #000000;
+  --red: red;
+  --orange: #E69F00;
+  --blue: #56B4E9;
+  --green: #009E73;
+  --pink: #CC79A7;
+  --white: #ffffff;
+  --light-grey: lightgrey;
+}
+
+.phx-hero {
+  background-color: lightgrey;
+}
+
+.browser-compat-error{
+  background-color: lightgrey;
+}
+
+#the-course {
+  width: 80%;
+  margin: auto;
+}
+
+text {
+  font-size: 24pt;
+  letter-spacing: 4px;
+  font-family: sans-serif;
+}
+
+.hide {
+  display: none;
+}
+
+main {
+  background-color: var(--dark-grey);
+}
+
+.next-char {
+  text-decoration: overline;
+}
+
+tspan.next-char {
+  fill: var(--black);
+  font-weight: bold;
+}
+
+path.course {
+  fill-opacity: 0;
+  stroke-width: 70;
+}
+
+path.course.primary {
+  stroke: var(--white);
+}
+
+.course.secondary {
+  stroke: var(--light-grey);
+}
+
+.error tspan.next-char {
+  fill: var(--red);
+}
+
+.orange {
+  fill: var(--orange);
+}
+
+.blue {
+  fill: var(--blue);
+}
+
+.green {
+  fill: var(--green);
+}
+
+.pink {
+  fill: var(--pink);
+}
+
+.unowned {
+  fill: var(--dark-grey);
+}
+
+.cur-text {
+  fill: var(--black);
+}
+
+.cur-text.error {
+  fill: var(--red);
+}
+
+.marker .beta {
+  fill-opacity: 0.4;
+  fill: var(--black);
+}
