@@ -1,23 +1,54 @@
 <%= if true do %>
+
 <div>
-<table>
+<h2>Games:</h2>
+  <table>
+    <thead>
+      <tr>
+        <th>ID</th>
+        <th>Status</th>
+        <th>Player 1</th>
+        <th>Player 2</th>
+        <th>Player 3</th>
+      </tr>
+    </thead>
+<tbody>
+<%= for {k,v} <- @games do %>
 <tr>
-<td><b>Game 1</b></td>
+<td><b><%=k %></b></td>
+<%=if v.status == :wait do %>
+<td><b>Join Game</b></td>
+<% else %>
 <td><b>In Progress</b></td>
-<td><button class="button button-outline">Player_88</button></td>
-<td><button class="button button-outline">Player_42</button></td>
-<td><button class="button button-outline">Player_78</button></td>
+<% end %>
+
+<%=if v["pos_1"] == nil do %>
+<td><button class="button button-clear" phx-click="join", phx-value-game="<%=k %>", phx-value-pos="pos_1">Join</button></td>
+<% else %>
+<td><button class="button button-outline"><%=v["pos_1"] %></button></td>
+<% end %>
+
+<%=if v["pos_2"] == nil do %>
+<td><button class="button button-clear" phx-click="join", phx-value-game="<%=k %>", phx-value-pos="pos_2">Join</button></td>
+<% else %>
+<td><button class="button button-outline"><%=v["pos_2"] %></button></td>
+<% end %>
+
+<%=if v["pos_3"] == nil do %>
+<td><button class="button button-clear" phx-click="join", phx-value-game="<%=k %>", phx-value-pos="pos_3">Join</button></td>
+<% else %>
+<td><button class="button button-outline"><%=v["pos_3"] %></button></td>
+<% end %>
+
 </tr>
-<tr>
-<td><b>Game 2</b></td>
-<td><b>Open</b></td>
-<td><button class="button button-outline">Player_67</button></td>
-<td><button class="button button-clear">Join</button></td>
-<td><button class="button button-clear">Join</button></td>
-</tr>
+<% end %>
+</tbody>
 </table>
 
-<b>Players in Lobby:</b> Player_27, Player_15
+<h2>Players in Room:</h2>
+<%= for {_,v} <- @players do %>
+<%= v.player %><br>
+<% end %>
 </div>
 <% else %>
 <div> Game in progress</div>
