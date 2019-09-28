@@ -42,8 +42,7 @@ defmodule TypoKart.Lobby do
     }
   end
 
-  def handle_cast({:join_lobby, process_id}, lobby) do
-    id=UUID.uuid1()
+  def handle_cast({:join_lobby, process_id, id}, lobby) do
     player_id="player_" <> String.slice(id,0,3)
     player_detail=%{player: player_id, time: System.os_time(:second), id: id, game: :lobby, pos: nil}
     lobby=put_in(lobby, [:players, process_id], player_detail)
@@ -77,8 +76,8 @@ defmodule TypoKart.Lobby do
   # 1. Change status of game to "ended"
   # 2. Move all players to lobby
   #
-  def handle_cast({:game_ended, game_id}, lobby) do
-    {:noreply, lobby}
+  def handle_call({:game_ended, game_id}, lobby) do
+    {:reply, lobby, lobby}
   end
 
   def handle_call(:list, _from, lobby) do
@@ -99,8 +98,8 @@ defmodule TypoKart.Lobby do
     GenServer.start_link(__MODULE__, nil, name: __MODULE__)
   end
 
-  def join_lobby(process_id) do
-    GenServer.cast(__MODULE__, {:join_lobby, process_id})
+  def join_lobby(process_id, id) do
+    GenServer.cast(__MODULE__, {:join_lobby, process_id, id})
   end
 
   def join_game(player_id, game_id, pos) do
@@ -129,7 +128,7 @@ defmodule TypoKart.Lobby do
   end
 
   def game_ended(game_id) do
-   GenServer.cast(__MODULE__, {:game_ended, game_id})
+   GenServer.call(__MODULE__, {:game_ended, game_id})
   end
 
 end

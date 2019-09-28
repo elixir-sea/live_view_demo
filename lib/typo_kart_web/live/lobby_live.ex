@@ -9,8 +9,11 @@ defmodule TypoKartWeb.LobbyLive do
 
   def mount(_session, socket) do
     if connected?(socket) do
-        Lobby.join_lobby(self())
-        :timer.send_interval(  1_000, self(), :tick)
+
+      id=UUID.uuid1()
+      Lobby.join_lobby(self(), id)
+
+      :timer.send_interval(  1_000, self(), :tick)
     end
     %{games: games, players: players}=Lobby.list()
     {:ok, assign(socket, players: players, games: games) }
