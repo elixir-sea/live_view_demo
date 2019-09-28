@@ -28,20 +28,22 @@ defmodule TypoKart.Lobby do
 
   use GenServer
 
+  alias TypoKart.{
+    GameMaster
+  }
+
   @game_wait_time 30
 
   def init(_init_arg) do
+	id=GameMaster.new_game()
     {:ok, %{
        games: 
-        %{"game_1" => %{:status => :wait, "pos_1" => nil, "pos_2" => nil, "pos_3" => nil}, 
-          "game_2" => %{:status => :wait, "pos_1" => nil, "pos_2" => nil, "pos_3" => nil},
-          "game_3" => %{:status => :wait, "pos_1" => nil, "pos_2" => nil, "pos_3" => nil}
+        %{id => %{:status => :pending, "pos_1" => nil, "pos_2" => nil, "pos_3" => nil}
         },
           players: %{}
       }
     }
   end
-
 
   # Joining functions
   #
@@ -77,6 +79,9 @@ defmodule TypoKart.Lobby do
           put_in([:players, player_id, :pos], pos) |>
           put_in([:games, game_id, pos], lobby.players[player_id].player)
 
+    # lobby.games[game_id]["pos_1"]
+    # lobby.games[game_id]["pos_2"]
+    # lobby.games[game_id]["pos_3"]
 
     {:reply, lobby, lobby}
   end
@@ -152,10 +157,14 @@ defmodule TypoKart.Lobby do
   end
 
   defp start_game(lobby, game_id) do
+
     # Call GameMaster
-    # GameMaster.add_player(lobby.games[game_id].pos_1, "orange")
-    # GameMaster.add_player(lobby.games[game_id].pos_2, "blue")
-    # GameMaster.add_player(lobby.games[game_id].pos_1, "green")
+    # player=Player(lobby.games[game_id]["pos_1"], "orange")
+    # GameMaster.add_player(game_id, player)
+    # player=Player(lobby.games[game_id]["pos_2"], "blue")
+    # GameMaster.add_player(game_id, player)
+    # player=Player(lobby.games[game_id]["pos_3"], "green")
+    # GameMaster.add_player(game_id, player)
     #
     # lock all those three players
     # lock(player1)
