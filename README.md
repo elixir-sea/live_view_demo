@@ -41,10 +41,7 @@ open doc/index.html
 
 ## Deployment
 
-How you deploy your app is up to you. A couple of the easiest options are:
-
-- Heroku ([instructions](https://hexdocs.pm/phoenix/heroku.html))
-- [Gigalixir](https://gigalixir.com/) (doesn't limit number of connections)
+[Deployment instructions](DEPLOYMENT.md).
 
 ## The Usual README Content
 
