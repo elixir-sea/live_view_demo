@@ -349,11 +349,10 @@ defmodule TypoKart.GameMasterTest do
     assert p2_points == 1
 
     # Player 1 loses a point for wrong char
-    assert {:error, _} =
-             GameMaster.advance(game_id, 0, hd('z'))
+    assert {:error, _} = GameMaster.advance(game_id, 0, hd('z'))
 
-    %Game{players: [%Player{points: p1_points}, %Player{points: p2_points}]}
-           = get_in(GameMaster.state(), [:games, game_id])
+    %Game{players: [%Player{points: p1_points}, %Player{points: p2_points}]} =
+      get_in(GameMaster.state(), [:games, game_id])
 
     assert p1_points == 2
     assert p2_points == 1
