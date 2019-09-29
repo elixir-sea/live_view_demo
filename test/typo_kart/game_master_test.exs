@@ -257,11 +257,11 @@ defmodule TypoKart.GameMasterTest do
       course: %Course{
         paths: [
           %Path{
-            chars: 'The quick brown fox'
+            chars: 'fox'
           }
         ],
         start_positions_by_player_count: [
-          [%PathCharIndex{path_index: 0, char_index: 4}]
+          [%PathCharIndex{path_index: 0, char_index: 1}]
         ]
       }
     }
@@ -269,7 +269,7 @@ defmodule TypoKart.GameMasterTest do
     assert game_id = GameMaster.new_game(game)
     assert {:ok, _} = GameMaster.start_game(game_id)
 
-    assert {:ok, game} = GameMaster.advance(game_id, 0, hd('q'))
+    assert {:ok, game} = GameMaster.advance(game_id, 0, hd('o'))
 
     assert %Game{
              players: [
@@ -278,7 +278,7 @@ defmodule TypoKart.GameMasterTest do
                    %PathCharIndex{
                      path_index: 0,
                      # incremented
-                     char_index: 5
+                     char_index: 2
                    }
                  ]
                }
@@ -286,27 +286,59 @@ defmodule TypoKart.GameMasterTest do
              char_ownership: [
                [
                  nil,
-                 nil,
-                 nil,
-                 nil,
                  0,
-                 nil,
-                 nil,
-                 nil,
-                 nil,
-                 nil,
-                 nil,
-                 nil,
-                 nil,
-                 nil,
-                 nil,
-                 nil,
-                 nil,
-                 nil,
                  nil
                ]
              ]
            } = game
+  end
+
+  @tag :advance
+  test "advance/3 scores points" do
+    game = %Game{
+      players: [
+        %Player{},
+        %Player{}
+      ],
+      course: %Course{
+        paths: [
+          %Path{
+            chars: 'turtle'
+          }
+        ],
+        start_positions_by_player_count: [
+          [%PathCharIndex{path_index: 0, char_index: 0}],
+          [
+            %PathCharIndex{path_index: 0, char_index: 0},
+            %PathCharIndex{path_index: 0, char_index: 1}
+          ]
+        ]
+      }
+    }
+
+    assert game_id = GameMaster.new_game(game)
+    assert {:ok, _} = GameMaster.start_game(game_id)
+
+    # Player 1 paints an colorless character
+    assert {:ok, %Game{players: [%Player{points: p1_points}, %Player{points: p2_points}]}} =
+             GameMaster.advance(game_id, 0, hd('t'))
+
+    assert p1_points == 2
+    assert p2_points == 0
+
+    # Player 2 paints an colorless character
+    assert {:ok, %Game{players: [%Player{points: p1_points}, %Player{points: p2_points}]}} =
+             GameMaster.advance(game_id, 1, hd('u'))
+
+    assert p1_points == 2
+    assert p2_points == 2
+
+    # Player 1 steals a point from Player 2
+    assert {:ok, %Game{players: [%Player{points: p1_points}, %Player{points: p2_points}]}} =
+             GameMaster.advance(game_id, 0, hd('u'))
+
+    assert p1_points == 3
+    assert p2_points == 1
   end
 
   @tag :advance
