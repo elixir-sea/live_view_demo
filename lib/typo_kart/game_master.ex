@@ -13,6 +13,8 @@ defmodule TypoKart.GameMaster do
 
   @player_colors ["orange", "blue", "green"]
 
+  @game_run_duration_seconds 180
+
   def start_link(_init \\ nil) do
     GenServer.start_link(__MODULE__, nil, name: __MODULE__)
   end
@@ -35,38 +37,103 @@ defmodule TypoKart.GameMaster do
   end
 
   def handle_call({:new_game, game}, _from, state) do
-    id = UUID.uuid1()
+    with game_id <- UUID.uuid1(),
+         game = %Game{} <- initialize_game(game),
+         %{} = updated_state <- put_in(state, [:games, game_id], game) do
+      {:reply, game_id, updated_state}
+    else
+      {:error, :invalid_player_color} ->
+        {:reply, {:error, "invalid player color"}, state}
 
-    game =
-      game
-      |> initialize_char_ownership()
-      |> initialize_starting_positions()
+      {:error, :duplicate_player_id} ->
+        {:reply, {:error, "duplicate player id"}, state}
 
-    {:reply, id, put_in(state, [:games, id], game)}
+      {:error, :duplicate_player_color} ->
+        {:reply, {:error, "duplicate player color"}, state}
+    end
+  end
+
+  def handle_call({:start_game, game_id}, _from, state) do
+    with %Game{players: players} = game <- Kernel.get_in(state, [:games, game_id]),
+         now <- DateTime.utc_now() |> DateTime.truncate(:second),
+         end_time <- DateTime.add(now, @game_run_duration_seconds, :second),
+         updated_game <- game |> Map.put(:state, :running) |> Map.put(:end_time, end_time),
+         updated_state <- put_in(state, [:games, game_id], updated_game) do
+      case {game.state, length(players)} do
+        {:pending, player_count} when player_count > 0 ->
+          # TODO: schedule an end_game @game_run_duration_seconds from now
+          {:reply, {:ok, updated_game}, updated_state}
+
+        {_, 0} ->
+          {:reply, {:error, "game has no players"}, state}
+
+        {:running, _} ->
+          {:reply, {:error, "game already running"}, state}
+
+        {:ended, _} ->
+          {:reply, {:error, "game already ended"}, state}
+      end
+    else
+      nil ->
+        {:reply, {:error, "game not found"}, state}
+
+      _ ->
+        {:reply, {:error, "unknown error"}, state}
+    end
+  end
+
+  def handle_call({:end_game, game_id}, _from, state) do
+    with %Game{state: :running} = game <- Kernel.get_in(state, [:games, game_id]),
+         updated_game <- Map.put(game, :state, :ended),
+         updated_state <- put_in(state, [:games, game_id], updated_game) do
+      {:reply, {:ok, updated_game}, updated_state}
+    else
+      nil ->
+        {:reply, {:error, "game not found"}, state}
+
+      %Game{state: game_state} ->
+        {:reply, {:error, "game is #{game_state}, not running"}, state}
+
+      _ ->
+        {:reply, {:error, "unknown error"}, state}
+    end
   end
 
   def handle_call({:advance_game, game_id, player_index, key_code}, _from, state) do
     # If key_code fits one of the characters (we'll take the first one found) indexed by the player's
     # cur_path_char_indices, then we can advance.
-    with %Game{course: course, players: players} = game <-
+    with %Game{state: :running, course: course, players: players} = game <-
            Kernel.get_in(state, [:games, game_id]),
-         %Player{cur_path_char_indices: cur_path_char_indices} = player <-
+         # TODO: refactor this again to put all of this under update_game
+         # which could return an appropriate {:error, ...} tuple when there's
+         # a bad key code, with the point subtraction already calculated.
+         %Player{cur_path_char_indices: cur_path_char_indices} = _player <-
            Enum.at(players, player_index),
          %PathCharIndex{} = valid_index <-
            Enum.find(cur_path_char_indices, &(char_from_course(course, &1) == key_code)),
-         updated_player <-
-           Map.put(player, :cur_path_char_indices, next_chars(course, valid_index)),
-         updated_game <-
-           update_char_ownership(game, valid_index, player_index)
-           |> Map.put(:players, List.replace_at(players, player_index, updated_player)),
+         %Game{} = updated_game <- update_game(game, valid_index, player_index),
          updated_state <- put_in(state, [:games, game_id], updated_game) do
-      # TODO:
-      # 1. Mark this point on the course as claimed by this player.
-      # 2. Accumulate any relevant points as a result of this action
       {:reply, {:ok, updated_game}, updated_state}
     else
+      %Game{} ->
+        {:reply, {:error, "game is not running"}, state}
+
       _bad ->
-        {:reply, {:error, "bad key_code"}, state}
+        # subtract a point for a bad key
+        # TODO: refactor to DRY it out
+        %Game{players: players} = game = Kernel.get_in(state, [:games, game_id])
+        %Player{points: current_points} = player = Enum.at(players, player_index)
+
+        updated_game =
+          game
+          |> Map.put(
+            :players,
+            List.replace_at(players, player_index, Map.put(player, :points, current_points - 1))
+          )
+
+        updated_state = put_in(state, [:games, game_id], updated_game)
+
+        {:reply, {:error, "bad key_code"}, updated_state}
     end
   end
 
@@ -79,10 +146,21 @@ defmodule TypoKart.GameMaster do
          state}
 
       %Game{players: players} = game ->
-        with player <- assign_player_color(game, player) |> Map.put(:id, UUID.uuid1()),
+        with %Player{} = player <- player_color(game, player),
+             %Player{} = player <- player_id(player, players),
              game <- Map.put(game, :players, players ++ [player]),
-             new_state <- put_in(state, [:games, game_id], game),
-             do: {:reply, {:ok, game, player}, new_state}
+             new_state <- put_in(state, [:games, game_id], game) do
+          {:reply, {:ok, game, player}, new_state}
+        else
+          {:error, :invalid_player_color} ->
+            {:reply, {:error, "invalid player color"}, state}
+
+          {:error, :duplicate_player_id} ->
+            {:reply, {:error, "duplicate player id"}, state}
+
+          {:error, :duplicate_player_color} ->
+            {:reply, {:error, "duplicate player color"}, state}
+        end
 
       _ ->
         {:reply, {:error, "game not found"}, state}
@@ -117,6 +195,16 @@ defmodule TypoKart.GameMaster do
   @spec new_game(Game.t()) :: binary()
   def new_game(%Game{} = game \\ %Game{}) do
     GenServer.call(__MODULE__, {:new_game, game})
+  end
+
+  @spec start_game(binary()) :: {:ok, Game.t()} | {:error, binary()}
+  def start_game(game_id) when is_binary(game_id) do
+    GenServer.call(__MODULE__, {:start_game, game_id})
+  end
+
+  @spec end_game(binary()) :: {:ok, Game.t()} | {:error, binary()}
+  def end_game(game_id) when is_binary(game_id) do
+    GenServer.call(__MODULE__, {:end_game, game_id})
   end
 
   @spec char_from_course(Course.t(), PathCharIndex.t()) :: char() | nil
@@ -367,6 +455,16 @@ defmodule TypoKart.GameMaster do
     )
   end
 
+  @doc "Seconds until game ends. 0 if the game has ended or pending"
+  @spec time_remaining(Game.t()) :: integer()
+  def time_remaining(%Game{state: :ended}), do: 0
+  def time_remaining(%Game{state: :pending}), do: 0
+
+  def time_remaining(%Game{end_time: end_time}) do
+    DateTime.to_unix(end_time) -
+      DateTime.to_unix(DateTime.utc_now() |> DateTime.truncate(:second))
+  end
+
   defp unowned_class, do: "unowned"
 
   defp next_char_class, do: "next-char"
@@ -420,12 +518,117 @@ defmodule TypoKart.GameMaster do
     }
   end
 
-  defp assign_player_color(%Game{players: players}, %Player{} = player) do
+  defp player_color(%Game{}, %Player{color: color})
+       when color != "" and color not in @player_colors,
+       do: {:error, :invalid_player_color}
+
+  defp player_color(%Game{players: players}, %Player{color: color} = player)
+       when color != "" do
+    other_players = Enum.filter(players, &(&1 != player))
+
+    if Enum.any?(other_players, &(&1.color == color)) do
+      {:error, :duplicate_player_color}
+    else
+      player
+    end
+  end
+
+  defp player_color(%Game{players: players}, %Player{} = player) do
     with used_colors <- Enum.map(players, & &1.color),
          available_colors <-
            Enum.reject(@player_colors, fn possible_color ->
              Enum.any?(used_colors, &(&1 == possible_color))
            end),
          do: Map.put(player, :color, Enum.random(available_colors))
+  end
+
+  defp player_color(_, {:error, _} = e), do: e
+
+  # When a player_id has already been assigned
+  defp player_id(%Player{id: id} = player, players)
+       when is_list(players) and id != "" do
+    if Enum.any?(players, &(&1.id == id)) do
+      {:error, :duplicate_player_id}
+    else
+      player
+    end
+  end
+
+  defp player_id(%Player{} = player, _), do: Map.put(player, :id, UUID.uuid1())
+
+  defp player_id({:error, _} = e, _), do: e
+
+  defp initialize_players_id_color(%Game{players: players} = game) do
+    initialized_players =
+      players
+      |> Enum.reduce_while([], fn player, acc ->
+        case player_color(game, player) |> player_id(players) do
+          {:error, _} = e ->
+            {:halt, e}
+
+          good ->
+            {:cont, acc ++ [good]}
+        end
+      end)
+
+    case initialized_players do
+      {:error, e} = e ->
+        e
+
+      _ ->
+        Map.put(game, :players, initialized_players)
+    end
+  end
+
+  defp initialize_game(%Game{} = game) do
+    game
+    |> initialize_char_ownership()
+    |> initialize_starting_positions()
+    |> initialize_players_id_color()
+  end
+
+  defp update_game(
+         %Game{course: course, char_ownership: char_ownership, players: players} = game,
+         %PathCharIndex{path_index: path_index, char_index: char_index} = valid_pci,
+         current_player_index
+       )
+       when is_integer(current_player_index) do
+    %Player{points: current_player_points} = Enum.at(players, current_player_index)
+
+    updated_players =
+      case Enum.at(char_ownership, path_index) |> Enum.at(char_index) do
+        nil ->
+          [{current_player_index, current_player_points, 2}]
+
+        current_owner_player_index when current_player_index == current_owner_player_index ->
+          [{current_player_index, current_player_points, 1}]
+
+        current_owner_player_index ->
+          [
+            {current_owner_player_index,
+             Enum.at(players, current_owner_player_index) |> Map.get(:points), -1},
+            {current_player_index, current_player_points, 1}
+          ]
+      end
+      |> Enum.reduce(players, fn {player_index, current_points, point_change}, acc ->
+        List.replace_at(
+          acc,
+          player_index,
+          Enum.at(acc, player_index)
+          |> Map.put(:points, current_points + point_change)
+        )
+      end)
+
+    # Update the current players cur_path_char_indices
+    updated_players =
+      updated_players
+      |> List.replace_at(
+        current_player_index,
+        Enum.at(updated_players, current_player_index)
+        |> Map.put(:cur_path_char_indices, next_chars(course, valid_pci))
+      )
+
+    update_char_ownership(game, valid_pci, current_player_index)
+    |> Map.put(:players, updated_players)
   end
 end
