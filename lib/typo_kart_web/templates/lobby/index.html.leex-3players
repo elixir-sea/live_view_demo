@@ -16,6 +16,7 @@ main {
         <th>Status</th>
         <th><font color=#E69F00>Player 1</font></th>
         <th><font color=#56B4E9>Player 2</font></th>
+        <th><font color=#009E73>Player 3</font></th>
       </tr>
     </thead>
 <tbody>
@@ -38,6 +39,12 @@ main {
 <td><button class="button button-clear" phx-click="join" phx-value-game="<%=k %>" phx-value-pos="pos_2">Join</button></td>
 <% else %>
 <td><button class="button button-outline">player_<%= String.slice(v.pos_2,0,3) %></button></td>
+<% end %>
+
+<%=if v.pos_3 == nil do %>
+<td><button class="button button-clear" phx-click="join" phx-value-game="<%=k %>" phx-value-pos="pos_3">Join</button></td>
+<% else %>
+<td><button class="button button-outline">player_<%= String.slice(v.pos_3,0,3) %></button></td>
 <% end %>
 
 </tr>
