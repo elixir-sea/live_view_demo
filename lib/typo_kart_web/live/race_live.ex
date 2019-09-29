@@ -81,28 +81,33 @@ defmodule TypoKartWeb.RaceLive do
     {:noreply, assign(socket, players: players, games: games) }
   end
 
-  def handle_event( "join", %{"game" => game_id, "pos" => pos} , socket) do
-    player_id=socket.assigns.id
-    %{games: games, players: players}=Lobby.join_game(player_id, game_id, pos)
-    gamemaster_id=games[game_id].gamemaster_id
-    if players[player_id].lock do
+  def handle_info({:start_game, gamemaster_id, player_index}, socket) do
     { :noreply,
       assign(
         socket,
         error_status: "",
         game: GameMaster.state() |> get_in([:games, gamemaster_id]),
         game_id: gamemaster_id,
-        player_index: 1,
+        player_index: player_index,
         marker_rotation_offset: 90,
        marker_translate_offset_x: -30,
         marker_translate_offset_y: 30,
         view_chars: [],
         lobby: false
       ) }
+  end
+
+
+  def handle_event( "join", %{"game" => game_id, "pos" => pos} , socket) do
+    player_id=socket.assigns.id
+    %{games: games, players: players}=Lobby.join_game(player_id, game_id, pos)
+    if players[player_id].lock do
+      { :noreply, socket}
     else
       {:noreply, assign(socket, players: players, games: games) }
     end
   end
+
 
   def handle_event("key", %{"keyCode" => keyCode}, socket)
       when keyCode in @ignored_key_codes,

@@ -57,8 +57,6 @@ defmodule TypoKart.Lobby do
   #
   # Join lobby
   def handle_call({:join_lobby, process_id, id}, _from, lobby) do
-
-    # player_id="player_" <> String.slice(id,0,3)
     player_detail=%{player: id, time: System.os_time(:second), process_id: process_id, game: :lobby, pos: nil, lock: false}
     lobby=put_in(lobby, [:players, id], player_detail)
     {:reply, lobby, lobby}
@@ -171,9 +169,9 @@ defmodule TypoKart.Lobby do
     # Add players in GameMaster
     #
      player1=lobby.games[game_id].pos_1
-    # GameMaster.add_player(game_id, %Player{id: player1, color: "orange"})
      player2=lobby.games[game_id].pos_2
-    # GameMaster.add_player(game_id, %Player{id: player2, color: "blue"})
+     pid1=lobby.players[player1].process_id
+     pid2=lobby.players[player2].process_id
 
    {:ok, course} = Courses.load("course2")
 
@@ -181,20 +179,15 @@ defmodule TypoKart.Lobby do
           players: [
             %Player{
               color: "orange",
-              label: "P1"
+              label: player1
             },
             %Player{
               color: "blue",
-              label: "P2"
+              label: player2
             }
           ],
           course: course
         })
-
-    #
-    # Start game
-    # GameMaster.start_game(game_id)
-    IO.inspect "game started"
 
     # Lock players and game
     lobby = lobby |>
@@ -203,6 +196,10 @@ defmodule TypoKart.Lobby do
          put_in([:players, player2, :lock], true) |>
          put_in([:games, game_id, :status], :playing) 
 
+    # Send messages to start game
+    send pid1, {:start_game, gamemaster_id, 0}
+    send pid2, {:start_game, gamemaster_id, 1}
+    IO.inspect "game started"
             
     #
     # Create another pending game
