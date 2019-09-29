@@ -35,7 +35,9 @@ defmodule TypoKart.Lobby do
 
   alias TypoKart.{
     GameMaster,
-    Player
+    Player,
+    Courses,
+    Game
   }
 
   @game_wait_time 30
@@ -44,7 +46,7 @@ defmodule TypoKart.Lobby do
 	id=GameMaster.new_game()
     {:ok, %{
           games: 
-            %{id => %{:status => :pending, :pos_1 => nil, :pos_2 => nil}
+            %{id => %{:status => :pending, :gamemaster_id => nil, :pos_1 => nil, :pos_2 => nil}
           },
           players: %{}
       }
@@ -168,10 +170,26 @@ defmodule TypoKart.Lobby do
     #
     # Add players in GameMaster
     #
-    player1=lobby.games[game_id].pos_1
-    GameMaster.add_player(game_id, %Player{id: player1, color: "orange"})
-    player2=lobby.games[game_id].pos_2
-    GameMaster.add_player(game_id, %Player{id: player2, color: "blue"})
+     player1=lobby.games[game_id].pos_1
+    # GameMaster.add_player(game_id, %Player{id: player1, color: "orange"})
+     player2=lobby.games[game_id].pos_2
+    # GameMaster.add_player(game_id, %Player{id: player2, color: "blue"})
+
+   {:ok, course} = Courses.load("course2")
+
+        gamemaster_id=GameMaster.new_game(%Game{
+          players: [
+            %Player{
+              color: "orange",
+              label: "P1"
+            },
+            %Player{
+              color: "blue",
+              label: "P2"
+            }
+          ],
+          course: course
+        })
 
     #
     # Start game
@@ -180,15 +198,17 @@ defmodule TypoKart.Lobby do
 
     # Lock players and game
     lobby = lobby |>
+         put_in([:games, game_id, :gamemaster_id], gamemaster_id) |>
          put_in([:players, player1, :lock], true) |>
          put_in([:players, player2, :lock], true) |>
          put_in([:games, game_id, :status], :playing) 
+
             
     #
     # Create another pending game
     #
-    game_id=GameMaster.new_game()
-    game_details=%{:status => :pending, :pos_1 => nil, :pos_2 => nil}
+    game_id=UUID.uuid1()
+    game_details=%{:status => :pending, :gamemaster_id => nil, :pos_1 => nil, :pos_2 => nil}
     lobby=lobby |> put_in([:games, game_id], game_details)
 
     lobby

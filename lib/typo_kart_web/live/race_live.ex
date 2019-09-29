@@ -81,31 +81,17 @@ defmodule TypoKartWeb.RaceLive do
     {:noreply, assign(socket, players: players, games: games) }
   end
 
-  def run_game(%{game_id: game_id, player_index: player_index}, socket) do
-    { :ok,
-      assign(
-        socket,
-        error_status: "",
-        game: GameMaster.state() |> get_in([:games, game_id]),
-        game_id: game_id,
-        player_index: player_index,
-        marker_rotation_offset: 90,
-       marker_translate_offset_x: -30,
-        marker_translate_offset_y: 30,
-        view_chars: []
-      ) }
-  end
-
   def handle_event( "join", %{"game" => game_id, "pos" => pos} , socket) do
     player_id=socket.assigns.id
     %{games: games, players: players}=Lobby.join_game(player_id, game_id, pos)
+    gamemaster_id=games[game_id].gamemaster_id
     if players[player_id].lock do
     { :noreply,
       assign(
         socket,
         error_status: "",
-        game: GameMaster.state() |> get_in([:games, game_id]),
-        game_id: game_id,
+        game: GameMaster.state() |> get_in([:games, gamemaster_id]),
+        game_id: gamemaster_id,
         player_index: 1,
         marker_rotation_offset: 90,
        marker_translate_offset_x: -30,
