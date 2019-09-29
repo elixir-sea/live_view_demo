@@ -7,7 +7,6 @@ defmodule TypoKartWeb.PageController do
     Courses,
     Game,
     GameMaster,
-    PathCharIndex,
     Player
   }
 
