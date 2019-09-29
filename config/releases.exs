@@ -1,6 +1,9 @@
 import Config
 
 config :typo_kart, TypoKartWeb.Endpoint,
+  url: [
+    host: System.get_env("URL_HOST")
+  ],
   http: [:inet6, port: String.to_integer(System.get_env("PORT") || "4000")],
   secret_key_base: System.get_env("SECRET_KEY_BASE"),
   server: true
