@@ -14,8 +14,6 @@ defmodule TypoKart.GameMaster do
 
   @player_colors ["orange", "blue", "green"]
 
-  @game_run_duration_seconds 180
-
   def start_link(_init \\ nil) do
     GenServer.start_link(__MODULE__, nil, name: __MODULE__)
   end
@@ -38,21 +36,7 @@ defmodule TypoKart.GameMaster do
   end
 
   def handle_call({:new_game, game}, _from, state) do
-    with game_id <- UUID.uuid1(),
-         game = %Game{} <- initialize_game(game),
-         %{} = updated_state <- put_in(state, [:games, game_id], game) do
-      {:reply, game_id, updated_state}
-    else
-      {:error, :invalid_player_color} ->
-        {:reply, {:error, "invalid player color"}, state}
-
-      {:error, :duplicate_player_id} ->
-        {:reply, {:error, "duplicate player id"}, state}
-
-      {:error, :duplicate_player_color} ->
-        {:reply, {:error, "duplicate player color"}, state}
-    end
-  end
+    id = UUID.uuid1()
 
   def handle_call({:start_game, game_id}, _from, state) do
     with %Game{players: players} = game <- Kernel.get_in(state, [:games, game_id]),
@@ -156,21 +140,10 @@ defmodule TypoKart.GameMaster do
          state}
 
       %Game{players: players} = game ->
-        with %Player{} = player <- player_color(game, player),
-             %Player{} = player <- player_id(player, players),
+        with player <- assign_player_color(game, player) |> Map.put(:id, UUID.uuid1()),
              game <- Map.put(game, :players, players ++ [player]),
-             new_state <- put_in(state, [:games, game_id], game) do
-          {:reply, {:ok, game, player}, new_state}
-        else
-          {:error, :invalid_player_color} ->
-            {:reply, {:error, "invalid player color"}, state}
-
-          {:error, :duplicate_player_id} ->
-            {:reply, {:error, "duplicate player id"}, state}
-
-          {:error, :duplicate_player_color} ->
-            {:reply, {:error, "duplicate player color"}, state}
-        end
+             new_state <- put_in(state, [:games, game_id], game),
+             do: {:reply, {:ok, game, player}, new_state}
 
       _ ->
         {:reply, {:error, "game not found"}, state}
@@ -560,22 +533,7 @@ defmodule TypoKart.GameMaster do
     }
   end
 
-  defp player_color(%Game{}, %Player{color: color})
-       when color != "" and color not in @player_colors,
-       do: {:error, :invalid_player_color}
-
-  defp player_color(%Game{players: players}, %Player{color: color} = player)
-       when color != "" do
-    other_players = Enum.filter(players, &(&1 != player))
-
-    if Enum.any?(other_players, &(&1.color == color)) do
-      {:error, :duplicate_player_color}
-    else
-      player
-    end
-  end
-
-  defp player_color(%Game{players: players}, %Player{} = player) do
+  defp assign_player_color(%Game{players: players}, %Player{} = player) do
     with used_colors <- Enum.map(players, & &1.color),
          available_colors <-
            Enum.reject(@player_colors, fn possible_color ->

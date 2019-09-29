@@ -1,5 +1,10 @@
 defmodule TypoKart.Lobby do
 
+  # HERE ARE THE SOURCES OF BUGS -
+  #	I did not implement timer-led game start, but when I
+  #     do, I need to make sure the "nil" players are not sent to GameMaster.
+  #
+  #
   # Players:
   # 1. New player joins :lobby as game_id
   #
@@ -39,7 +44,7 @@ defmodule TypoKart.Lobby do
 	id=GameMaster.new_game()
     {:ok, %{
        games: 
-        %{id => %{:status => :pending, "pos_1" => nil, "pos_2" => nil, "pos_3" => nil}
+        %{id => %{:status => :pending, :pos_1 => nil, :pos_2 => nil, :pos_3 => nil}
         },
           players: %{}
       }
@@ -50,6 +55,7 @@ defmodule TypoKart.Lobby do
   #
   # Join lobby
   def handle_call({:join_lobby, process_id, id}, _from, lobby) do
+
     # player_id="player_" <> String.slice(id,0,3)
     player_detail=%{player: id, time: System.os_time(:second), process_id: process_id, game: :lobby, pos: nil, lock: false}
     lobby=put_in(lobby, [:players, id], player_detail)
@@ -64,29 +70,33 @@ defmodule TypoKart.Lobby do
   def handle_call({:join_game, player_id, game_id, pos}, _from, lobby) do
 
     # Check that the player is not locked
+    case lobby.players[player_id].lock do
+      true -> {:reply, lobby, lobby}
+      _ ->
 
-    # Make player join game
-    prev_game = lobby.players[player_id].game
-    prev_pos  = lobby.players[player_id].pos 
+       # Make player join game
+       prev_game = lobby.players[player_id].game
+       prev_pos  = lobby.players[player_id].pos 
 
-    lobby =
-      case prev_pos do
-         nil -> lobby
-         _   -> put_in(lobby, [:games, prev_game, prev_pos], nil)
-    end
+       lobby =
+         case prev_pos do
+            nil -> lobby
+            _   -> put_in(lobby, [:games, prev_game, prev_pos], nil)
+         end
 
-    lobby=lobby |>
+        lobby=lobby |>
           put_in([:players, player_id, :game], game_id) |>
           put_in([:players, player_id, :pos], pos) |>
           put_in([:games, game_id, pos], lobby.players[player_id].player)
 
-    lobby =
-       cond do
-        (lobby.games[game_id]["pos_1"] != nil && lobby.games[game_id]["pos_2"] != nil && lobby.games[game_id]["pos_3"] != nil)  -> lobby |> start_game(game_id)
-        true -> lobby
-    end
+        lobby =
+           cond do
+             (lobby.games[game_id].pos_1 != nil && lobby.games[game_id].pos_2 != nil && lobby.games[game_id].pos_3 != nil)  -> lobby |> start_game(game_id)
+             true -> lobby
+           end
 
-    {:reply, lobby, lobby}
+        {:reply, lobby, lobby}
+     end
   end
 
   # Ending game
@@ -94,14 +104,17 @@ defmodule TypoKart.Lobby do
   # 2. Move all players to lobby
   #
   def handle_call({:game_ended, game_id}, lobby) do
-    #
-    # Unlock three player by moving them back to the lobby
-    # unlock(player1)
-    # unlock(player2)
-    # unlock(player3)
-    #
-    # Change game status to ended
-    #
+
+    player1=lobby.games[game_id].pos_1
+    player2=lobby.games[game_id].pos_2
+    player3=lobby.games[game_id].pos_3
+
+    lobby = lobby |>
+         put_in([:players, player1, :lock], false) |>
+         put_in([:players, player2, :lock], false) |>
+         put_in([:players, player3, :lock], false) |>
+         put_in([:games, game_id, :status], :ended) 
+            
     {:reply, lobby, lobby}
   end
 
@@ -131,7 +144,7 @@ defmodule TypoKart.Lobby do
   end
 
   def join_game(player_id, game_id, pos) do
-    GenServer.call(__MODULE__, {:join_game, player_id, game_id, pos})
+    GenServer.call(__MODULE__, {:join_game, player_id, game_id, String.to_existing_atom(pos)})
   end
 
   def game_ended(game_id) do
@@ -154,36 +167,34 @@ defmodule TypoKart.Lobby do
 
   defp start_game(lobby, game_id) do
 
-    # Call GameMaster
-    player1=lobby.games[game_id]["pos_1"]
+    #
+    # Add players in GameMaster
+    #
+    player1=lobby.games[game_id].pos_1
     GameMaster.add_player(game_id, %Player{id: player1, color: "orange"})
-    IO.inspect player1
-    player2=lobby.games[game_id]["pos_2"]
+    player2=lobby.games[game_id].pos_2
     GameMaster.add_player(game_id, %Player{id: player2, color: "blue"})
-    player3=lobby.games[game_id]["pos_3"]
+    player3=lobby.games[game_id].pos_3
     GameMaster.add_player(game_id, %Player{id: player3, color: "green"})
 
+    #
     # Start game
     # GameMaster.start_game(game_id)
     IO.inspect "game started"
 
+    # Lock players and game
     lobby = lobby |>
          put_in([:players, player1, :lock], true) |>
          put_in([:players, player2, :lock], true) |>
-         put_in([:players, player3, :lock], true) 
+         put_in([:players, player3, :lock], true) |>
+         put_in([:games, game_id, :status], :playing) 
             
-    IO.inspect lobby
-    #
-    # lock all those three players
-    # lock(player1)
-    # lock(player2)
-    # lock(player3)
-    #
     #
     # Create another pending game
-    game_id=GameMaster.new_game()
-    # lobby=lobby |> put_in([:games, game_id, :game], game_id)
     #
+    game_id=GameMaster.new_game()
+    game_details=%{:status => :pending, :pos_1 => nil, :pos_2 => nil, :pos_3 => nil}
+    lobby=lobby |> put_in([:games, game_id], game_details)
 
     lobby
   end

@@ -4,10 +4,7 @@ defmodule TypoKart.Game do
     Player
   }
 
-  @type game_state() :: :pending | :running | :ended
-  defstruct state: :pending,
-            end_time: DateTime.from_unix!(0),
-            players: [],
+  defstruct players: [],
             course: %Course{},
             # two dimensional array:
             #   - level-1: corresponds to the list of paths in the course
@@ -18,8 +15,6 @@ defmodule TypoKart.Game do
             char_ownership: []
 
   @type t :: %__MODULE__{
-          state: game_state(),
-          end_time: DateTime.t(),
           players: list(Player.t()),
           course: Course.t(),
           char_ownership: list(list(integer() | nil))
