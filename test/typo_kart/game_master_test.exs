@@ -1205,6 +1205,7 @@ defmodule TypoKart.GameMasterTest do
     assert 0 == GameMaster.time_remaining(%Game{state: :pending})
   end
 
+  @tag :skip
   @tag :time_remaining
   test "time_remaining/1", %{now: now} do
     # It's possible that this could result in a false negative some some actual time is passing
