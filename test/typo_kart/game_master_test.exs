@@ -357,6 +357,25 @@ defmodule TypoKart.GameMasterTest do
 
     assert p1_points == 2
     assert p2_points == 1
+
+    # Player 1 advances
+    assert {:ok, _} = GameMaster.advance(game_id, 0, hd('r'))
+    assert {:ok, _} = GameMaster.advance(game_id, 0, hd('t'))
+    assert {:ok, _} = GameMaster.advance(game_id, 0, hd('l'))
+
+    # last char before wrapping around
+    assert {:ok, %Game{players: [%Player{points: p1_points}, %Player{points: p2_points}]}} =
+             GameMaster.advance(game_id, 0, hd('e'))
+
+    assert p1_points == 10
+    assert p2_points == 1
+
+    # Player 1 (after wrapping around) scores when re-painting over his own letter.
+    assert {:ok, %Game{players: [%Player{points: p1_points}, %Player{points: p2_points}]}} =
+             GameMaster.advance(game_id, 0, hd('t'))
+
+    assert p1_points == 11
+    assert p2_points == 1
   end
 
   @tag :advance
