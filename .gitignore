@@ -35,3 +35,6 @@ npm-debug.log
 
 # iex init file might be different from developer to developer
 /.iex.exs
+
+# exrm release
+/rel

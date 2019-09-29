@@ -1,0 +1,15 @@
+#!/bin/bash
+
+. .heroku-app
+
+DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+DOCKER_DIR="$DIR/../"
+
+DOCKER=`which docker`
+
+if [ ! -x "$DOCKER" ]; then
+  echo "ERROR: docker not found. Make sure it's installed and available in your PATH."
+  exit 1
+fi
+
+$DOCKER push registry.heroku.com/$HEROKU_APP/web

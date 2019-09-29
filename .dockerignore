@@ -1,0 +1,7 @@
+/deps
+/_build
+/priv/static
+/doc
+/assets/node_modules
+/rel
+/test
