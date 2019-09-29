@@ -55,18 +55,24 @@ defmodule TypoKartWeb.RaceLive do
   @game_update_auto_interval_ms 1000
 
   def render(assigns) do
-    TypoKartWeb.LobbyView.render("index.html", assigns)
+   case assigns do
+    %{browser_incompatible: true} ->
+      TypoKartWeb.RaceView.render("incompatible.html", assigns)
+
+      _ ->
+        TypoKartWeb.RaceView.render("index.html", assigns)
+    end
   end
 
   def mount(_session, socket) do
 
     if connected?(socket) do
-      id=UUID.uuid1()
-      %{games: games, players: players}=Lobby.join_lobby(self(), id)
+      player_id=UUID.uuid1()
+      %{games: games, players: players}=Lobby.join_lobby(self(), player_id)
       :timer.send_interval(  1_000, self(), :tick)
-      {:ok, assign(socket, games: games, players: players, id: id) }
+      {:ok, assign(socket, games: games, players: players, id: player_id, lobby: true) }
     else
-      {:ok, assign(socket, games: %{}, players: %{}, id: "") }
+      {:ok, assign(socket, games: %{}, players: %{}, id: "", lobby: true) }
     end
   end
 
@@ -75,40 +81,42 @@ defmodule TypoKartWeb.RaceLive do
     {:noreply, assign(socket, players: players, games: games) }
   end
 
-  def handle_event( "join", %{"game" => game, "pos" => pos} , socket) do
-    id=socket.assigns.id
-    %{games: games, players: players}=Lobby.join_game(id, game, pos)
-    {:noreply, assign(socket, players: players, games: games) }
+  def run_game(%{game_id: game_id, player_index: player_index}, socket) do
+    { :ok,
+      assign(
+        socket,
+        error_status: "",
+        game: GameMaster.state() |> get_in([:games, game_id]),
+        game_id: game_id,
+        player_index: player_index,
+        marker_rotation_offset: 90,
+       marker_translate_offset_x: -30,
+        marker_translate_offset_y: 30,
+        view_chars: []
+      ) }
   end
 
-
-# def render(assigns) do
-#  case assigns do
-#    %{browser_incompatible: true} ->
-#      TypoKartWeb.RaceView.render("incompatible.html", assigns)
-#
-#      _ ->
-#        TypoKartWeb.RaceView.render("index.html", assigns)
-#    end
-#  end
-#
-#  def mount(%{game_id: game_id, player_index: player_index}, socket) do
-#
-#    {
-#      :ok,
-#      assign(
-#        socket,
-#        error_status: "",
-#        game: GameMaster.state() |> get_in([:games, game_id]),
-#        game_id: game_id,
-#        player_index: player_index,
-#        marker_rotation_offset: 90,
-#       marker_translate_offset_x: -30,
-#        marker_translate_offset_y: 30,
-#        view_chars: []
-#      )
-#    }
-#  end
+  def handle_event( "join", %{"game" => game_id, "pos" => pos} , socket) do
+    player_id=socket.assigns.id
+    %{games: games, players: players}=Lobby.join_game(player_id, game_id, pos)
+    if players[player_id].lock do
+    { :noreply,
+      assign(
+        socket,
+        error_status: "",
+        game: GameMaster.state() |> get_in([:games, game_id]),
+        game_id: game_id,
+        player_index: 1,
+        marker_rotation_offset: 90,
+       marker_translate_offset_x: -30,
+        marker_translate_offset_y: 30,
+        view_chars: [],
+        lobby: false
+      ) }
+    else
+      {:noreply, assign(socket, players: players, games: games) }
+    end
+  end
 
   def handle_event("key", %{"keyCode" => keyCode}, socket)
       when keyCode in @ignored_key_codes,
@@ -214,3 +222,4 @@ defmodule TypoKartWeb.RaceLive do
     Util.now_unix(:millisecond) - last_game_update >= @game_update_rate_limit_ms
   end
 end
+
