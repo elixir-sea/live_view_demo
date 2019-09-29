@@ -104,6 +104,9 @@ defmodule TypoKart.GameMaster do
     # cur_path_char_indices, then we can advance.
     with %Game{state: :running, course: course, players: players} = game <-
            Kernel.get_in(state, [:games, game_id]),
+         # TODO: refactor this again to put all of this under update_game
+         # which could return an appropriate {:error, ...} tuple when there's
+         # a bad key code, with the point subtraction already calculated.
          %Player{cur_path_char_indices: cur_path_char_indices} = _player <-
            Enum.at(players, player_index),
          %PathCharIndex{} = valid_index <-
@@ -571,14 +574,40 @@ defmodule TypoKart.GameMaster do
     |> initialize_players_id_color()
   end
 
-  defp update_game(%Game{course: course, players: players} = game, %PathCharIndex{} = valid_pci, current_player_index)
+  defp update_game(%Game{course: course, char_ownership: char_ownership, players: players} = game, %PathCharIndex{path_index: path_index, char_index: char_index} = valid_pci, current_player_index)
     when is_integer(current_player_index) do
-      player = Enum.at(players, current_player_index)
+      %Player{points: current_player_points} = Enum.at(players, current_player_index)
 
-      updated_player =
-           Map.put(player, :cur_path_char_indices, next_chars(course, valid_pci))
+      updated_players =
+        case Enum.at(char_ownership, path_index) |> Enum.at(char_index) do
+          nil ->
+            [{current_player_index, current_player_points, 2}]
+
+          current_owner_player_index when current_player_index == current_owner_player_index ->
+            [{current_player_index, current_player_points, 1}]
+
+          current_owner_player_index ->
+            [{current_owner_player_index, Enum.at(players, current_owner_player_index) |> Map.get(:points), -1}, {current_player_index, current_player_points, 1}]
+        end
+        |> Enum.reduce(players, fn {player_index, current_points, point_change}, acc ->
+          List.replace_at(
+            acc,
+            player_index,
+            Enum.at(acc, player_index)
+            |> Map.put(:points, current_points + point_change)
+          )
+        end)
+
+      # Update the current players cur_path_char_indices
+      updated_players =
+        updated_players
+        |> List.replace_at(
+          current_player_index,
+          Enum.at(updated_players, current_player_index)
+          |> Map.put(:cur_path_char_indices, next_chars(course, valid_pci))
+        )
 
       update_char_ownership(game, valid_pci, current_player_index)
-      |> Map.put(:players, List.replace_at(players, current_player_index, updated_player))
+      |> Map.put(:players, updated_players)
   end
 end
