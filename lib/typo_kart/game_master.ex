@@ -104,25 +104,19 @@ defmodule TypoKart.GameMaster do
     # cur_path_char_indices, then we can advance.
     with %Game{state: :running, course: course, players: players} = game <-
            Kernel.get_in(state, [:games, game_id]),
-         %Player{cur_path_char_indices: cur_path_char_indices} = player <-
+         %Player{cur_path_char_indices: cur_path_char_indices} = _player <-
            Enum.at(players, player_index),
          %PathCharIndex{} = valid_index <-
            Enum.find(cur_path_char_indices, &(char_from_course(course, &1) == key_code)),
-         updated_player <-
-           Map.put(player, :cur_path_char_indices, next_chars(course, valid_index)),
-         updated_game <-
-           update_char_ownership(game, valid_index, player_index)
-           |> Map.put(:players, List.replace_at(players, player_index, updated_player)),
+         %Game{} = updated_game <- update_game(game, valid_index, player_index),
          updated_state <- put_in(state, [:games, game_id], updated_game) do
-      # TODO:
-      # 1. Mark this point on the course as claimed by this player.
-      # 2. Accumulate any relevant points as a result of this action
       {:reply, {:ok, updated_game}, updated_state}
     else
-      %Game{state: game_state} ->
+      %Game{} ->
         {:reply, {:error, "game is not running"}, state}
 
       _bad ->
+        # TODO: subtract a point for a bad key
         {:reply, {:error, "bad key_code"}, state}
     end
   end
@@ -575,5 +569,16 @@ defmodule TypoKart.GameMaster do
     |> initialize_char_ownership()
     |> initialize_starting_positions()
     |> initialize_players_id_color()
+  end
+
+  defp update_game(%Game{course: course, players: players} = game, %PathCharIndex{} = valid_pci, current_player_index)
+    when is_integer(current_player_index) do
+      player = Enum.at(players, current_player_index)
+
+      updated_player =
+           Map.put(player, :cur_path_char_indices, next_chars(course, valid_pci))
+
+      update_char_ownership(game, valid_pci, current_player_index)
+      |> Map.put(:players, List.replace_at(players, current_player_index, updated_player))
   end
 end
