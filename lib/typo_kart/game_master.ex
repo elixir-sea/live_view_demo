@@ -6,7 +6,8 @@ defmodule TypoKart.GameMaster do
     Course,
     Path,
     PathCharIndex,
-    Player
+    Player,
+    Util
   }
 
   @player_count_limit 3
@@ -55,7 +56,7 @@ defmodule TypoKart.GameMaster do
 
   def handle_call({:start_game, game_id}, _from, state) do
     with %Game{players: players} = game <- Kernel.get_in(state, [:games, game_id]),
-         now <- DateTime.utc_now() |> DateTime.truncate(:second),
+         now <- Util.now(),
          end_time <- DateTime.add(now, @game_run_duration_seconds, :second),
          updated_game <- game |> Map.put(:state, :running) |> Map.put(:end_time, end_time),
          updated_state <- put_in(state, [:games, game_id], updated_game) do
@@ -491,7 +492,7 @@ defmodule TypoKart.GameMaster do
 
   def time_remaining(%Game{end_time: end_time}) do
     DateTime.to_unix(end_time) -
-      DateTime.to_unix(DateTime.utc_now() |> DateTime.truncate(:second))
+      DateTime.to_unix(Util.now())
   end
 
   defp unowned_class, do: "unowned"
