@@ -22,29 +22,29 @@ main {
 <tbody>
 <%= for {k,v} <- @games do %>
 <tr>
-<td><b>Game_<%=String.slice(k,0,3) %></b></td>
-<%=if v.status == :wait do %>
-<td><b>Join Game</b></td>
+<td><b>game_<%=String.slice(k,0,3) %></b></td>
+<%=if v.status == :pending do %>
+<td><b>Join game</b></td>
 <% else %>
-<td><b>In Progress</b></td>
+<td><b>Running</b></td>
 <% end %>
 
-<%=if v["pos_1"] == nil do %>
+<%=if v.pos_1 == nil do %>
 <td><button class="button button-clear" phx-click="join" phx-value-game="<%=k %>" phx-value-pos="pos_1">Join</button></td>
 <% else %>
-<td><button class="button button-outline">Player_<%= String.slice(v["pos_1"],0,3) %></button></td>
+<td><button class="button button-outline">player_<%= String.slice(v.pos_1,0,3) %></button></td>
 <% end %>
 
-<%=if v["pos_2"] == nil do %>
+<%=if v.pos_2 == nil do %>
 <td><button class="button button-clear" phx-click="join" phx-value-game="<%=k %>" phx-value-pos="pos_2">Join</button></td>
 <% else %>
-<td><button class="button button-outline">Player_<%= String.slice(v["pos_2"],0,3) %></button></td>
+<td><button class="button button-outline">player_<%= String.slice(v.pos_2,0,3) %></button></td>
 <% end %>
 
-<%=if v["pos_3"] == nil do %>
+<%=if v.pos_3 == nil do %>
 <td><button class="button button-clear" phx-click="join" phx-value-game="<%=k %>" phx-value-pos="pos_3">Join</button></td>
 <% else %>
-<td><button class="button button-outline">Player_<%= String.slice(v["pos_3"],0,3) %></button></td>
+<td><button class="button button-outline">player_<%= String.slice(v.pos_3,0,3) %></button></td>
 <% end %>
 
 </tr>
@@ -54,10 +54,13 @@ main {
 
 <h2>Players in Room:</h2>
 <%= for {_,v} <- @players do %>
-Player_<%= String.slice(v.player,0,3) %><br>
+player_<%= String.slice(v.player,0,3) %>
+<%=if v.lock do %> <font color=red> (racing) </font> <% end %>
+<br>
 <% end %>
 </div>
 <% else %>
 <div> Game in progress</div>
 <% end %>
+
 

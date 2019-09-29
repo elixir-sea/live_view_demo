@@ -51,6 +51,10 @@ defmodule TypoKart.GameMasterTest do
                  %Player{
                    label: "foo",
                    color: "orange"
+                 },
+                 %Player{
+                   label: "bar",
+                   color: "blue"
                  }
                ],
                course: %Course{
@@ -62,6 +66,15 @@ defmodule TypoKart.GameMasterTest do
                    %Path{
                      chars: 'blue'
                    }
+                 ],
+                 start_positions_by_player_count: [
+                   # one player
+                   [%PathCharIndex{path_index: 0, char_index: 0}],
+                   # two players
+                   [
+                     %PathCharIndex{path_index: 0, char_index: 0},
+                     %PathCharIndex{path_index: 1, char_index: 2}
+                   ]
                  ]
                }
              })
@@ -72,7 +85,17 @@ defmodule TypoKart.GameMasterTest do
                  players: [
                    %Player{
                      label: "foo",
-                     color: "orange"
+                     color: "orange",
+                     cur_path_char_indices: [
+                       %PathCharIndex{path_index: 0, char_index: 0}
+                     ]
+                   },
+                   %Player{
+                     label: "bar",
+                     color: "blue",
+                     cur_path_char_indices: [
+                       %PathCharIndex{path_index: 1, char_index: 2}
+                     ]
                    }
                  ],
                  course: %Course{
@@ -213,20 +236,16 @@ defmodule TypoKart.GameMasterTest do
   test "advance/3 with valid single path inputs and single current path_char index for given player" do
     game = %Game{
       players: [
-        %Player{
-          cur_path_char_indices: [
-            %PathCharIndex{
-              path_index: 0,
-              char_index: 4
-            }
-          ]
-        }
+        %Player{}
       ],
       course: %Course{
         paths: [
           %Path{
             chars: 'The quick brown fox'
           }
+        ],
+        start_positions_by_player_count: [
+          [%PathCharIndex{path_index: 0, char_index: 4}]
         ]
       }
     }
@@ -278,16 +297,19 @@ defmodule TypoKart.GameMasterTest do
     course = %Course{
       paths: [
         %Path{
-          chars: String.to_charlist("The quick brown fox")
+          chars: 'fox'
         },
         %Path{
-          chars: String.to_charlist("A slow green turtle")
+          chars: 'turtle'
         }
+      ],
+      start_positions_by_player_count: [
+        [%PathCharIndex{path_index: 0, char_index: 0}]
       ],
       path_connections: [
         {
           # A player can advance directly from this point...
-          %PathCharIndex{path_index: 0, char_index: 9},
+          %PathCharIndex{path_index: 0, char_index: 1},
           # ...to this point.
           %PathCharIndex{path_index: 1, char_index: 0}
         }
@@ -314,7 +336,9 @@ defmodule TypoKart.GameMasterTest do
 
     assert game_id = GameMaster.new_game(game)
 
-    assert {:ok, game} = GameMaster.advance(game_id, 0, hd('A'))
+    assert {:ok, _} = GameMaster.advance(game_id, 0, hd('f'))
+    assert {:ok, _} = GameMaster.advance(game_id, 0, hd('o'))
+    assert {:ok, game} = GameMaster.advance(game_id, 0, hd('t'))
 
     assert %Game{
              players: [
@@ -330,41 +354,12 @@ defmodule TypoKart.GameMasterTest do
              ],
              char_ownership: [
                [
-                 nil,
-                 nil,
-                 nil,
-                 nil,
-                 nil,
-                 nil,
-                 nil,
-                 nil,
-                 nil,
-                 nil,
-                 nil,
-                 nil,
-                 nil,
-                 nil,
-                 nil,
-                 nil,
-                 nil,
-                 nil,
+                 0,
+                 0,
                  nil
                ],
                [
                  0,
-                 nil,
-                 nil,
-                 nil,
-                 nil,
-                 nil,
-                 nil,
-                 nil,
-                 nil,
-                 nil,
-                 nil,
-                 nil,
-                 nil,
-                 nil,
                  nil,
                  nil,
                  nil,
@@ -393,6 +388,9 @@ defmodule TypoKart.GameMasterTest do
           # ...to this point.
           %PathCharIndex{path_index: 1, char_index: 0}
         }
+      ],
+      start_positions_by_player_count: [
+        [%PathCharIndex{path_index: 0, char_index: 10}]
       ]
     }
 
@@ -792,7 +790,7 @@ defmodule TypoKart.GameMasterTest do
 
     assert [
              {"f", "unowned next-char"},
-             {"ox", "orange"},
+             {"ox", "orange"}
            ] = GameMaster.text_segments(game, 0, 0)
   end
 
@@ -810,7 +808,7 @@ defmodule TypoKart.GameMasterTest do
           ]
         },
         %Player{
-          color: "blue",
+          color: "blue"
         }
       ],
       course: %Course{
@@ -832,7 +830,7 @@ defmodule TypoKart.GameMasterTest do
 
     assert [
              {"f", "blue next-char"},
-             {"ox", "unowned"},
+             {"ox", "unowned"}
            ] = GameMaster.text_segments(game, 0, 0)
   end
 
@@ -850,7 +848,7 @@ defmodule TypoKart.GameMasterTest do
           ]
         },
         %Player{
-          color: "blue",
+          color: "blue"
         }
       ],
       course: %Course{
@@ -872,7 +870,7 @@ defmodule TypoKart.GameMasterTest do
 
     assert [
              {"fo", "orange"},
-             {"x", "blue next-char"},
+             {"x", "blue next-char"}
            ] = GameMaster.text_segments(game, 0, 0)
   end
 
@@ -890,7 +888,7 @@ defmodule TypoKart.GameMasterTest do
           ]
         },
         %Player{
-          color: "blue",
+          color: "blue"
         }
       ],
       course: %Course{
@@ -912,7 +910,7 @@ defmodule TypoKart.GameMasterTest do
 
     assert [
              {"fo", "orange"},
-             {"x", "unowned next-char"},
+             {"x", "unowned next-char"}
            ] = GameMaster.text_segments(game, 0, 0)
   end
 
@@ -930,7 +928,7 @@ defmodule TypoKart.GameMasterTest do
           ]
         },
         %Player{
-          color: "blue",
+          color: "blue"
         }
       ],
       course: %Course{
@@ -952,7 +950,7 @@ defmodule TypoKart.GameMasterTest do
 
     assert [
              {"fo", "orange"},
-             {"x", "orange next-char"},
+             {"x", "orange next-char"}
            ] = GameMaster.text_segments(game, 0, 0)
   end
 
@@ -970,7 +968,7 @@ defmodule TypoKart.GameMasterTest do
           ]
         },
         %Player{
-          color: "blue",
+          color: "blue"
         }
       ],
       course: %Course{
@@ -995,7 +993,58 @@ defmodule TypoKart.GameMasterTest do
     assert [
              {"bl", "orange"},
              {"a", "blue next-char"},
-             {"st", "blue"},
+             {"st", "blue"}
            ] = GameMaster.text_segments(game, 0, 0)
+  end
+
+  @tag :add_player
+  test "add_player/2" do
+    game_id = GameMaster.new_game()
+
+    assert {:ok, %Game{}, _player} = GameMaster.add_player(game_id, %Player{})
+  end
+
+  @tag :add_player
+  test "add_player/2 will not add more than three players (for now)" do
+    game_id = GameMaster.new_game()
+
+    assert {:ok, %Game{}, %Player{id: player1_id, color: player1_color}} =
+             GameMaster.add_player(game_id, %Player{})
+
+    assert {:ok, %Game{}, %Player{id: player2_id, color: player2_color}} =
+             GameMaster.add_player(game_id, %Player{})
+
+    assert {:ok, %Game{}, %Player{id: player3_id, color: player3_color}} =
+             GameMaster.add_player(game_id, %Player{})
+
+    assert {:error, "This game has already reached the maximum of players allowed: 3."} =
+             GameMaster.add_player(game_id, %Player{})
+
+    refute player1_color == player2_color
+    refute player1_color == player3_color
+    refute player2_color == player3_color
+
+    refute player1_id == player2_id
+    refute player1_id == player3_id
+    refute player2_id == player3_id
+  end
+
+  @tag :remove_player
+  test "remove_player/2" do
+    game_id = GameMaster.new_game()
+
+    assert {:ok, _game, %Player{id: player1_id}} = GameMaster.add_player(game_id, %Player{})
+
+    assert {:ok, %Game{players: []}} = GameMaster.remove_player(game_id, player1_id)
+  end
+
+  @tag :remove_player
+  test "remove_player/2 when the player is not found" do
+    game_id = GameMaster.new_game()
+
+    assert {:ok, _game, %Player{id: player1_id}} = GameMaster.add_player(game_id, %Player{})
+
+    assert {:ok, %Game{players: [%Player{id: ^player1_id}]}} =
+             GameMaster.remove_player(game_id, "x#{player1_id}")
   end
 end
