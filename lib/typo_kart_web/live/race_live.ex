@@ -2,6 +2,7 @@ defmodule TypoKartWeb.RaceLive do
   use Phoenix.LiveView
 
   alias TypoKart.{
+    Game,
     GameMaster,
     ViewChar
   }
@@ -53,6 +54,9 @@ defmodule TypoKartWeb.RaceLive do
       %{browser_incompatible: true} ->
         TypoKartWeb.RaceView.render("incompatible.html", assigns)
 
+      %{game: %Game{state: :ended}} ->
+        TypoKartWeb.RaceView.render("game_end.html", assigns)
+
       _ ->
         TypoKartWeb.RaceView.render("index.html", assigns)
     end
@@ -65,20 +69,25 @@ defmodule TypoKartWeb.RaceLive do
     #
     # connected?(socket)
 
-    {
-      :ok,
-      assign(
-        socket,
-        error_status: "",
-        game: GameMaster.state() |> get_in([:games, game_id]),
-        game_id: game_id,
-        player_index: player_index,
-        marker_rotation_offset: 90,
-        marker_translate_offset_x: -30,
-        marker_translate_offset_y: 30,
-        view_chars: []
-      )
-    }
+    with %Game{} = game <- game_with_current_player_view(game_id, player_index) do
+      {
+        :ok,
+        assign(
+          socket,
+          error_status: "",
+          game: game,
+          game_id: game_id,
+          player_index: player_index,
+          marker_rotation_offset: 90,
+          marker_translate_offset_x: -30,
+          marker_translate_offset_y: 30,
+          view_chars: []
+        )
+      }
+    else
+      bad ->
+        bad
+    end
   end
 
   def handle_event("key", %{"keyCode" => keyCode}, socket)
@@ -137,4 +146,23 @@ defmodule TypoKartWeb.RaceLive do
   end
 
   def handle_event(_, _, socket), do: {:noreply, socket}
+
+  def handle_info(:end_game, %{
+          assigns: %{
+            game_id: game_id
+          }} = socket
+  ) do
+    {:noreply, assign(socket, game: GameMaster.state() |> get_in([:games, game_id]))}
+  end
+
+  def handle_info(_, _, socket), do: {:noreply, socket}
+
+  defp game_with_current_player_view(game_id, player_index) when is_binary(game_id) and is_integer(player_index) do
+    with {:ok, %Game{} = game} <- GameMaster.register_player_view(game_id, player_index, self()) do
+      game
+    else
+      bad ->
+        bad
+    end
+  end
 end

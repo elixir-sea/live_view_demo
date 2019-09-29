@@ -61,7 +61,7 @@ defmodule TypoKart.GameMaster do
          updated_state <- put_in(state, [:games, game_id], updated_game) do
       case {game.state, length(players)} do
         {:pending, player_count} when player_count > 0 ->
-          # TODO: schedule an end_game @game_run_duration_seconds from now
+          :timer.apply_after(@game_run_duration_seconds * 1000, __MODULE__, :end_game, [game_id])
           {:reply, {:ok, updated_game}, updated_state}
 
         {_, 0} ->
@@ -83,9 +83,16 @@ defmodule TypoKart.GameMaster do
   end
 
   def handle_call({:end_game, game_id}, _from, state) do
-    with %Game{state: :running} = game <- Kernel.get_in(state, [:games, game_id]),
+    with %Game{state: :running, players: players} = game <- Kernel.get_in(state, [:games, game_id]),
          updated_game <- Map.put(game, :state, :ended),
          updated_state <- put_in(state, [:games, game_id], updated_game) do
+      Enum.map(players, fn
+        %Player{view_pid: nil} ->
+          nil
+
+        %Player{view_pid: view_pid} ->
+          send(view_pid, :end_game)
+      end)
       {:reply, {:ok, updated_game}, updated_state}
     else
       nil ->
@@ -182,6 +189,23 @@ defmodule TypoKart.GameMaster do
     end
   end
 
+  def handle_call({:register_player_view, game_id, player_index, pid}, _from, state) do
+    with %Game{players: players} = game <- Kernel.get_in(state, [:games, game_id]),
+         %Player{} = player <- Enum.at(players, player_index),
+         updated_player <- Map.put(player, :view_pid, pid),
+         updated_players <- List.replace_at(players, player_index, updated_player),
+         updated_game <- Map.put(game, :players, updated_players),
+         updated_state <- put_in(state, [:games, game_id], updated_game) do
+      {:reply, {:ok, updated_game}, updated_state}
+    else
+      nil ->
+        {:reply, {:error, "game or player not found"}, state}
+
+      _ ->
+        {:reply, {:error, "unknown error"}, state}
+    end
+  end
+
   @spec reset_all() :: :ok
   def reset_all do
     GenServer.call(__MODULE__, :reset_all)
@@ -190,6 +214,11 @@ defmodule TypoKart.GameMaster do
   @spec state() :: map()
   def state do
     GenServer.call(__MODULE__, :state)
+  end
+
+  @spec register_player_view(binary(), integer(), pid()) :: {:ok, Game.t()} | {:error, binary()}
+  def register_player_view(game_id, player_index, pid) when is_integer(player_index) and is_pid(pid) do
+    GenServer.call(__MODULE__, {:register_player_view, game_id, player_index, pid})
   end
 
   @spec new_game(Game.t()) :: binary()

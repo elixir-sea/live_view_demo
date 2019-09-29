@@ -1269,4 +1269,26 @@ defmodule TypoKart.GameMasterTest do
     assert {:ok, _} = GameMaster.end_game(game_id)
     assert {:error, _} = GameMaster.end_game(game_id)
   end
+
+  @tag :register_player_view
+  test "regiser_player_view/2" do
+    game_id = GameMaster.new_game()
+    assert {:ok, _game, %Player{view_pid: nil}} = GameMaster.add_player(game_id)
+    assert {:ok, %Game{players: [%Player{view_pid: pid} | _rest]}} = GameMaster.register_player_view(game_id, 0, self())
+    assert self() == pid
+  end
+
+  @tag :register_player_view
+  test "regiser_player_view/2 when player is invalid" do
+    game_id = GameMaster.new_game()
+    assert {:ok, _game, %Player{view_pid: nil}} = GameMaster.add_player(game_id)
+    assert {:error, _} = GameMaster.register_player_view(game_id, 1, self())
+  end
+
+  @tag :register_player_view
+  test "regiser_player_view/2 when game_id is invalid" do
+    game_id = GameMaster.new_game()
+    assert {:ok, _game, %Player{view_pid: nil}} = GameMaster.add_player(game_id)
+    assert {:error, _} = GameMaster.register_player_view("x#{game_id}", 0, self())
+  end
 end
