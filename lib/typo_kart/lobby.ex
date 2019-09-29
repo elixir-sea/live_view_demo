@@ -103,7 +103,7 @@ defmodule TypoKart.Lobby do
   # 1. Change status of game to "ended"
   # 2. Move all players to lobby
   #
-  def handle_call({:game_ended, game_id}, lobby) do
+  def handle_call({:game_ended, game_id}, _from, lobby) do
 
     player1=lobby.games[game_id].pos_1
     player2=lobby.games[game_id].pos_2

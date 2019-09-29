@@ -2,7 +2,7 @@ defmodule TypoKart.Player do
   alias TypoKart.PathCharIndex
 
   defstruct id: "",
-            color: "black",
+            color: "",
             label: "",
             points: 0,
             view_pid: nil,
