@@ -5,7 +5,7 @@ defmodule TypoKart.MixProject do
     [
       app: :typo_kart,
       version: "0.1.0",
-      elixir: "~> 1.8.2",
+      elixir: "~> 1.9.1",
       elixirc_paths: elixirc_paths(Mix.env()),
       compilers: [:phoenix, :gettext] ++ Mix.compilers(),
       start_permanent: Mix.env() == :prod,
@@ -42,7 +42,8 @@ defmodule TypoKart.MixProject do
       {:plug_cowboy, "~> 2.0"},
       {:calendar, "~> 0.17.6"},
       {:uuid, "~> 1.1"},
-      {:yaml_elixir, "~> 2.4"}
+      {:yaml_elixir, "~> 2.4"},
+      {:exrm, "~> 1.0"}
     ]
   end
 end
