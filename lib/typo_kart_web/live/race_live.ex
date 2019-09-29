@@ -2,11 +2,7 @@ defmodule TypoKartWeb.RaceLive do
   use Phoenix.LiveView
 
   alias TypoKart.{
-    Courses,
-    Game,
     GameMaster,
-    PathCharIndex,
-    Player,
     ViewChar
   }
 
@@ -53,42 +49,30 @@ defmodule TypoKartWeb.RaceLive do
   ]
 
   def render(assigns) do
-    TypoKartWeb.RaceView.render("index.html", assigns)
+    case assigns do
+      %{browser_incompatible: true} ->
+        TypoKartWeb.RaceView.render("incompatible.html", assigns)
+
+      _ ->
+        TypoKartWeb.RaceView.render("index.html", assigns)
+    end
   end
 
-  def mount(_session, socket) do
+  def mount(%{game_id: game_id, player_index: player_index}, socket) do
     # Reminder: mount() is called twice, once for the static HTML mount,
     # and again when the websocket is mounted.
     # We can test whether it's the latter case with:
     #
     # connected?(socket)
 
-    {:ok, course} = Courses.load("course2")
-
-    game_id =
-      GameMaster.new_game(%Game{
-        players: [
-          %Player{
-            color: "orange",
-            label: "P1",
-            cur_path_char_indices: [
-              %PathCharIndex{path_index: 2, char_index: 0}
-            ]
-          }
-        ],
-        course: course
-      })
-
-    game = GameMaster.state() |> get_in([:games, game_id])
-
     {
       :ok,
       assign(
         socket,
         error_status: "",
-        game: game,
+        game: GameMaster.state() |> get_in([:games, game_id]),
         game_id: game_id,
-        player_index: 0,
+        player_index: player_index,
         marker_rotation_offset: 90,
         marker_translate_offset_x: -30,
         marker_translate_offset_y: 30,
@@ -126,6 +110,9 @@ defmodule TypoKartWeb.RaceLive do
 
   def handle_event("key", _, socket),
     do: {:noreply, assign(socket, error_status: "error")}
+
+  def handle_event("bail_out_browser_incompatible", _, socket),
+    do: {:noreply, assign(socket, browser_incompatible: true)}
 
   def handle_event(
         "load_char_data",

@@ -12,6 +12,11 @@ defmodule TypoKart.GameMasterTest do
 
   setup do
     GameMaster.reset_all()
+
+    {:ok,
+     %{
+       now: DateTime.utc_now() |> DateTime.truncate(:second)
+     }}
   end
 
   test "initializes" do
@@ -44,13 +49,18 @@ defmodule TypoKart.GameMasterTest do
     assert initial_state == GameMaster.state()
   end
 
+  @tag :new_game
   test "creates a game with some initialization" do
-    assert id =
+    assert game_id =
              GameMaster.new_game(%Game{
                players: [
                  %Player{
                    label: "foo",
                    color: "orange"
+                 },
+                 %Player{
+                   label: "bar",
+                   color: "blue"
                  }
                ],
                course: %Course{
@@ -62,29 +72,58 @@ defmodule TypoKart.GameMasterTest do
                    %Path{
                      chars: 'blue'
                    }
+                 ],
+                 start_positions_by_player_count: [
+                   # one player
+                   [%PathCharIndex{path_index: 0, char_index: 0}],
+                   # two players
+                   [
+                     %PathCharIndex{path_index: 0, char_index: 0},
+                     %PathCharIndex{path_index: 1, char_index: 2}
+                   ]
                  ]
                }
              })
 
-    assert %{
-             games: %{
-               ^id => %Game{
-                 players: [
-                   %Player{
-                     label: "foo",
-                     color: "orange"
-                   }
-                 ],
-                 course: %Course{
-                   view_box: "0 0 800 800"
-                 },
-                 char_ownership: [
-                   [nil, nil, nil],
-                   [nil, nil, nil, nil]
-                 ]
-               }
+    assert_raise MatchError, ~r/.*/, fn ->
+      {:error, _} = game_id
+    end
+
+    assert %Game{
+             state: :pending,
+             end_time: %DateTime{},
+             players: players,
+             course: course,
+             char_ownership: char_ownership
+           } = get_in(GameMaster.state(), [:games, game_id])
+
+    assert [
+             %Player{
+               id: player1_id,
+               label: "foo",
+               color: "orange",
+               cur_path_char_indices: [
+                 %PathCharIndex{path_index: 0, char_index: 0}
+               ]
+             },
+             %Player{
+               id: player2_id,
+               label: "bar",
+               color: "blue",
+               cur_path_char_indices: [
+                 %PathCharIndex{path_index: 1, char_index: 2}
+               ]
              }
-           } = GameMaster.state()
+           ] = players
+
+    assert "0 0 800 800" == course.view_box
+
+    assert [
+             [nil, nil, nil],
+             [nil, nil, nil, nil]
+           ] = char_ownership
+
+    refute player1_id == player2_id
   end
 
   test "char_from_course/2 when given a valid index" do
@@ -213,25 +252,22 @@ defmodule TypoKart.GameMasterTest do
   test "advance/3 with valid single path inputs and single current path_char index for given player" do
     game = %Game{
       players: [
-        %Player{
-          cur_path_char_indices: [
-            %PathCharIndex{
-              path_index: 0,
-              char_index: 4
-            }
-          ]
-        }
+        %Player{}
       ],
       course: %Course{
         paths: [
           %Path{
             chars: 'The quick brown fox'
           }
+        ],
+        start_positions_by_player_count: [
+          [%PathCharIndex{path_index: 0, char_index: 4}]
         ]
       }
     }
 
     assert game_id = GameMaster.new_game(game)
+    assert {:ok, _} = GameMaster.start_game(game_id)
 
     assert {:ok, game} = GameMaster.advance(game_id, 0, hd('q'))
 
@@ -278,16 +314,19 @@ defmodule TypoKart.GameMasterTest do
     course = %Course{
       paths: [
         %Path{
-          chars: String.to_charlist("The quick brown fox")
+          chars: 'fox'
         },
         %Path{
-          chars: String.to_charlist("A slow green turtle")
+          chars: 'turtle'
         }
+      ],
+      start_positions_by_player_count: [
+        [%PathCharIndex{path_index: 0, char_index: 0}]
       ],
       path_connections: [
         {
           # A player can advance directly from this point...
-          %PathCharIndex{path_index: 0, char_index: 9},
+          %PathCharIndex{path_index: 0, char_index: 1},
           # ...to this point.
           %PathCharIndex{path_index: 1, char_index: 0}
         }
@@ -313,8 +352,11 @@ defmodule TypoKart.GameMasterTest do
     }
 
     assert game_id = GameMaster.new_game(game)
+    assert {:ok, _} = GameMaster.start_game(game_id)
 
-    assert {:ok, game} = GameMaster.advance(game_id, 0, hd('A'))
+    assert {:ok, _} = GameMaster.advance(game_id, 0, hd('f'))
+    assert {:ok, _} = GameMaster.advance(game_id, 0, hd('o'))
+    assert {:ok, game} = GameMaster.advance(game_id, 0, hd('t'))
 
     assert %Game{
              players: [
@@ -330,41 +372,12 @@ defmodule TypoKart.GameMasterTest do
              ],
              char_ownership: [
                [
-                 nil,
-                 nil,
-                 nil,
-                 nil,
-                 nil,
-                 nil,
-                 nil,
-                 nil,
-                 nil,
-                 nil,
-                 nil,
-                 nil,
-                 nil,
-                 nil,
-                 nil,
-                 nil,
-                 nil,
-                 nil,
+                 0,
+                 0,
                  nil
                ],
                [
                  0,
-                 nil,
-                 nil,
-                 nil,
-                 nil,
-                 nil,
-                 nil,
-                 nil,
-                 nil,
-                 nil,
-                 nil,
-                 nil,
-                 nil,
-                 nil,
                  nil,
                  nil,
                  nil,
@@ -393,6 +406,9 @@ defmodule TypoKart.GameMasterTest do
           # ...to this point.
           %PathCharIndex{path_index: 1, char_index: 0}
         }
+      ],
+      start_positions_by_player_count: [
+        [%PathCharIndex{path_index: 0, char_index: 10}]
       ]
     }
 
@@ -415,6 +431,8 @@ defmodule TypoKart.GameMasterTest do
     }
 
     assert game_id = GameMaster.new_game(game)
+
+    assert {:ok, _} = GameMaster.start_game(game_id)
 
     assert {:ok, game} = GameMaster.advance(game_id, 0, hd('b'))
 
@@ -549,6 +567,29 @@ defmodule TypoKart.GameMasterTest do
     assert game_id = GameMaster.new_game(game)
 
     assert {:error, _} = GameMaster.advance(game_id, 0, hd('s'))
+  end
+
+  @tag :advance
+  test "advance/3 fails when game is not running" do
+    game = %Game{
+      players: [
+        %Player{}
+      ],
+      course: %Course{
+        paths: [
+          %Path{
+            chars: 'fox'
+          }
+        ],
+        start_positions_by_player_count: [
+          [%PathCharIndex{path_index: 0, char_index: 0}]
+        ]
+      }
+    }
+
+    assert game_id = GameMaster.new_game(game)
+
+    assert {:error, "game is not running"} = GameMaster.advance(game_id, 0, hd('f'))
   end
 
   @tag :text_segments
@@ -997,5 +1038,166 @@ defmodule TypoKart.GameMasterTest do
              {"a", "blue next-char"},
              {"st", "blue"}
            ] = GameMaster.text_segments(game, 0, 0)
+  end
+
+  @tag :add_player
+  test "add_player/2 assigns id and color if not given" do
+    game_id = GameMaster.new_game()
+
+    assert {:ok, %Game{}, %Player{id: id, color: color}} =
+             GameMaster.add_player(game_id, %Player{})
+
+    refute id == ""
+    assert true == Enum.any?(["orange", "blue", "green"], &(&1 == color))
+  end
+
+  @tag :add_player
+  test "add_player/2 respects id and color if given" do
+    game_id = GameMaster.new_game()
+
+    assert {:ok, %Game{}, %Player{id: "123", color: "orange"}} =
+             GameMaster.add_player(game_id, %Player{id: "123", color: "orange"})
+  end
+
+  @tag :add_player
+  test "add_player/2 rejects duplicate id" do
+    game_id = GameMaster.new_game()
+
+    assert {:ok, %Game{}, %Player{id: "123"}} = GameMaster.add_player(game_id, %Player{id: "123"})
+    assert {:error, _} = GameMaster.add_player(game_id, %Player{id: "123"})
+  end
+
+  @tag :add_player
+  test "add_player/2 rejects duplicate color" do
+    game_id = GameMaster.new_game()
+
+    assert {:ok, %Game{}, %Player{color: "orange"}} =
+             GameMaster.add_player(game_id, %Player{color: "orange"})
+
+    assert {:error, _} = GameMaster.add_player(game_id, %Player{color: "orange"})
+  end
+
+  @tag :add_player
+  test "add_player/2 rejects invalid color" do
+    game_id = GameMaster.new_game()
+
+    assert {:error, _} = GameMaster.add_player(game_id, %Player{color: "asdfasdf"})
+  end
+
+  @tag :add_player
+  test "add_player/2 will not add more than three players (for now)" do
+    game_id = GameMaster.new_game()
+
+    assert {:ok, %Game{}, %Player{id: player1_id, color: player1_color}} =
+             GameMaster.add_player(game_id, %Player{})
+
+    assert {:ok, %Game{}, %Player{id: player2_id, color: player2_color}} =
+             GameMaster.add_player(game_id, %Player{})
+
+    assert {:ok, %Game{}, %Player{id: player3_id, color: player3_color}} =
+             GameMaster.add_player(game_id, %Player{})
+
+    assert {:error, "This game has already reached the maximum of players allowed: 3."} =
+             GameMaster.add_player(game_id, %Player{})
+
+    refute player1_color == player2_color
+    refute player1_color == player3_color
+    refute player2_color == player3_color
+
+    refute player1_id == player2_id
+    refute player1_id == player3_id
+    refute player2_id == player3_id
+  end
+
+  @tag :remove_player
+  test "remove_player/2" do
+    game_id = GameMaster.new_game()
+
+    assert {:ok, _game, %Player{id: player1_id}} = GameMaster.add_player(game_id)
+
+    assert {:ok, %Game{players: []}} = GameMaster.remove_player(game_id, player1_id)
+  end
+
+  @tag :remove_player
+  test "remove_player/2 when the player is not found" do
+    game_id = GameMaster.new_game()
+
+    assert {:ok, _game, %Player{id: player1_id}} = GameMaster.add_player(game_id)
+
+    assert {:ok, %Game{players: [%Player{id: ^player1_id}]}} =
+             GameMaster.remove_player(game_id, "x#{player1_id}")
+  end
+
+  @tag :start_game
+  test "start_game/1" do
+    game_id = GameMaster.new_game()
+
+    assert {:ok, _game, _player} = GameMaster.add_player(game_id)
+
+    assert {:ok, %Game{state: :running, end_time: %DateTime{}}} = GameMaster.start_game(game_id)
+  end
+
+  @tag :start_game
+  test "start_game/1 with invalid game_id" do
+    game_id = GameMaster.new_game()
+
+    assert {:ok, _game, _player} = GameMaster.add_player(game_id)
+
+    assert {:error, _} = GameMaster.start_game("#{game_id}x")
+  end
+
+  @tag :start_game
+  test "start_game/1 when game is not :pending" do
+    game_id = GameMaster.new_game()
+
+    assert {:ok, _game, _player} = GameMaster.add_player(game_id)
+
+    assert {:ok, %Game{} = game} = GameMaster.start_game(game_id)
+    assert {:error, _} = GameMaster.start_game(game_id)
+  end
+
+  @tag :start_game
+  test "start_game/1 with no players" do
+    game_id = GameMaster.new_game()
+
+    assert {:error, _} = GameMaster.start_game(game_id)
+  end
+
+  @tag :time_remaining
+  test "time_remaining/1 when game has ended" do
+    assert 0 == GameMaster.time_remaining(%Game{state: :ended})
+  end
+
+  @tag :time_remaining
+  test "time_remaining/1 when game is pending" do
+    assert 0 == GameMaster.time_remaining(%Game{state: :pending})
+  end
+
+  @tag :time_remaining
+  test "time_remaining/1", %{now: now} do
+    # It's possible that this could result in a false negative some some actual time is passing
+    # between the time we invoke the function to the time when it takes it's snapshot of the "now"
+    # time. We could get fancier about how we test for this. But as long it's passing,
+    # we'll call it good enough for now.
+    assert 3 == GameMaster.time_remaining(%Game{end_time: DateTime.add(now, 3, :second)})
+  end
+
+  @tag :end_game
+  test "end_game/1" do
+    game_id = GameMaster.new_game()
+    assert {:ok, _game, _player} = GameMaster.add_player(game_id)
+    assert {:ok, _game} = GameMaster.start_game(game_id)
+
+    assert {:ok, %Game{}} = GameMaster.end_game(game_id)
+  end
+
+  @tag :end_game
+  test "end_game/1 when it's not running" do
+    game_id = GameMaster.new_game()
+    assert {:ok, _game, _player} = GameMaster.add_player(game_id)
+    assert {:error, _} = GameMaster.end_game(game_id)
+    assert {:ok, _game} = GameMaster.start_game(game_id)
+    assert {:ok, _} = GameMaster.end_game(game_id)
+    assert {:error, _} = GameMaster.end_game(game_id)
   end
 end

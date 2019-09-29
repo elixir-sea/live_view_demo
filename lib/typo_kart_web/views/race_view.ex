@@ -78,6 +78,8 @@ defmodule TypoKartWeb.RaceView do
   end
 
   @spec course_rotation(Game.t(), list(ViewChar.t()), integer()) :: float()
+  def course_rotation(_, [], _), do: 0
+
   def course_rotation(%Game{} = game, view_chars, player_index)
       when is_list(view_chars) and is_integer(player_index),
       do: -1 * (cur_view_char(game, view_chars, player_index) |> Map.get(:rotation))
@@ -132,5 +134,20 @@ defmodule TypoKartWeb.RaceView do
        Enum.at(players, player_index) |> Map.get(:color)
      ] ++ if(length(view_chars) == 0, do: ["hide"], else: []))
     |> Enum.join(" ")
+  end
+
+  @spec game_timer_formatted(Game.t()) :: binary()
+  def game_timer_formatted(%Game{} = game) do
+    with total_seconds <- GameMaster.time_remaining(game),
+         minutes <- Integer.floor_div(total_seconds, 60),
+         seconds <- Integer.mod(total_seconds, 60),
+         do:
+           Enum.join(
+             [
+               String.pad_leading("#{minutes}", 2, "0"),
+               String.pad_leading("#{seconds}", 2, "0")
+             ],
+             ":"
+           )
   end
 end

@@ -8,11 +8,19 @@
   --black: #000000;
   --red: red;
   --orange: #E69F00;
-  --blue: #E69F00;
-  --green: #E69F00;
-  --pink: #E69F00;
+  --blue: #56B4E9;
+  --green: #009E73;
+  --pink: #CC79A7;
   --white: #ffffff;
   --light-grey: lightgrey;
+}
+
+.phx-hero {
+  background-color: lightgrey;
+}
+
+.browser-compat-error{
+  background-color: lightgrey;
 }
 
 #the-course {
@@ -61,19 +69,23 @@ path.course.primary {
 }
 
 .orange {
+  color: var(--orange);
   fill: var(--orange);
 }
 
 .blue {
   fill: var(--blue);
+  color: var(--blue);
 }
 
 .green {
   fill: var(--green);
+  color: var(--green);
 }
 
 .pink {
   fill: var(--pink);
+  color: var(--pink);
 }
 
 .unowned {
