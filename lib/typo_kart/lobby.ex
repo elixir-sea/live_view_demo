@@ -29,7 +29,8 @@ defmodule TypoKart.Lobby do
   use GenServer
 
   alias TypoKart.{
-    GameMaster
+    GameMaster,
+    Player
   }
 
   @game_wait_time 30
@@ -49,9 +50,9 @@ defmodule TypoKart.Lobby do
   #
   # Join lobby
   def handle_call({:join_lobby, process_id, id}, _from, lobby) do
-    player_id="player_" <> String.slice(id,0,3)
-    player_detail=%{player: player_id, time: System.os_time(:second), id: id, game: :lobby, pos: nil}
-    lobby=put_in(lobby, [:players, process_id], player_detail)
+    # player_id="player_" <> String.slice(id,0,3)
+    player_detail=%{player: id, time: System.os_time(:second), process_id: process_id, game: :lobby, pos: nil, lock: false}
+    lobby=put_in(lobby, [:players, id], player_detail)
     {:reply, lobby, lobby}
   end
 
@@ -79,9 +80,11 @@ defmodule TypoKart.Lobby do
           put_in([:players, player_id, :pos], pos) |>
           put_in([:games, game_id, pos], lobby.players[player_id].player)
 
-    # lobby.games[game_id]["pos_1"]
-    # lobby.games[game_id]["pos_2"]
-    # lobby.games[game_id]["pos_3"]
+    lobby =
+       cond do
+        (lobby.games[game_id]["pos_1"] != nil && lobby.games[game_id]["pos_2"] != nil && lobby.games[game_id]["pos_3"] != nil)  -> lobby |> start_game(game_id)
+        true -> lobby
+    end
 
     {:reply, lobby, lobby}
   end
@@ -149,36 +152,41 @@ defmodule TypoKart.Lobby do
   end
 
 
-  # Private functions for non-public action
-
-  defp create_game(game_id) do
-    # game_id=GameMaster.create_game()
-    {:ok}
-  end
-
   defp start_game(lobby, game_id) do
 
     # Call GameMaster
-    # player=Player(lobby.games[game_id]["pos_1"], "orange")
-    # GameMaster.add_player(game_id, player)
-    # player=Player(lobby.games[game_id]["pos_2"], "blue")
-    # GameMaster.add_player(game_id, player)
-    # player=Player(lobby.games[game_id]["pos_3"], "green")
-    # GameMaster.add_player(game_id, player)
+    player1=lobby.games[game_id]["pos_1"]
+    GameMaster.add_player(game_id, %Player{id: player1, color: "orange"})
+    IO.inspect player1
+    player2=lobby.games[game_id]["pos_2"]
+    GameMaster.add_player(game_id, %Player{id: player2, color: "blue"})
+    player3=lobby.games[game_id]["pos_3"]
+    GameMaster.add_player(game_id, %Player{id: player3, color: "green"})
+
+    # Start game
+    # GameMaster.start_game(game_id)
+    IO.inspect "game started"
+
+    lobby = lobby |>
+         put_in([:players, player1, :lock], true) |>
+         put_in([:players, player2, :lock], true) |>
+         put_in([:players, player3, :lock], true) 
+            
+    IO.inspect lobby
     #
     # lock all those three players
     # lock(player1)
     # lock(player2)
     # lock(player3)
     #
-    # Start game
-    # GameMaster.start_game(game_id)
     #
     # Create another pending game
-    # game_id=GameMaster.create_game()
+    game_id=GameMaster.new_game()
     # lobby=lobby |> put_in([:games, game_id, :game], game_id)
     #
-    {:ok}
+
+    lobby
   end
 
 end
+

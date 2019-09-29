@@ -59,9 +59,9 @@ defmodule TypoKartWeb.RaceLive do
       id=UUID.uuid1()
       %{games: games, players: players}=Lobby.join_lobby(self(), id)
       :timer.send_interval(  1_000, self(), :tick)
-      {:ok, assign(socket, games: games, players: players) }
+      {:ok, assign(socket, games: games, players: players, id: id) }
     else
-      {:ok, assign(socket, games: %{}, players: %{}) }
+      {:ok, assign(socket, games: %{}, players: %{}, id: "") }
     end
   end
 
@@ -71,7 +71,8 @@ defmodule TypoKartWeb.RaceLive do
   end
 
   def handle_event( "join", %{"game" => game, "pos" => pos} , socket) do
-    %{games: games, players: players}=Lobby.join_game(self(), game, pos)
+    id=socket.assigns.id
+    %{games: games, players: players}=Lobby.join_game(id, game, pos)
     {:noreply, assign(socket, players: players, games: games) }
   end
 
