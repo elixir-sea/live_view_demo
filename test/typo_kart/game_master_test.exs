@@ -312,6 +312,14 @@ defmodule TypoKart.GameMasterTest do
             %PathCharIndex{path_index: 0, char_index: 0},
             %PathCharIndex{path_index: 0, char_index: 1}
           ]
+        ],
+        path_connections: [
+          {
+            # ... from this character
+            %PathCharIndex{path_index: 0, char_index: 5},
+            # ... player can move to this character
+            %PathCharIndex{path_index: 0, char_index: 0}
+          }
         ]
       }
     }
@@ -338,6 +346,16 @@ defmodule TypoKart.GameMasterTest do
              GameMaster.advance(game_id, 0, hd('u'))
 
     assert p1_points == 3
+    assert p2_points == 1
+
+    # Player 1 loses a point for wrong char
+    assert {:error, _} =
+             GameMaster.advance(game_id, 0, hd('z'))
+
+    %Game{players: [%Player{points: p1_points}, %Player{points: p2_points}]}
+           = get_in(GameMaster.state(), [:games, game_id])
+
+    assert p1_points == 2
     assert p2_points == 1
   end
 

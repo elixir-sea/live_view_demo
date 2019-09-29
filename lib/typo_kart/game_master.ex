@@ -119,8 +119,17 @@ defmodule TypoKart.GameMaster do
         {:reply, {:error, "game is not running"}, state}
 
       _bad ->
-        # TODO: subtract a point for a bad key
-        {:reply, {:error, "bad key_code"}, state}
+        # subtract a point for a bad key
+        # TODO: refactor to DRY it out
+        %Game{players: players} = game = Kernel.get_in(state, [:games, game_id])
+        %Player{points: current_points} = player = Enum.at(players, player_index)
+        updated_game =
+          game
+          |> Map.put(:players, List.replace_at(players, player_index, Map.put(player, :points, current_points - 1)))
+
+        updated_state = put_in(state, [:games, game_id], updated_game)
+
+        {:reply, {:error, "bad key_code"}, updated_state}
     end
   end
 
