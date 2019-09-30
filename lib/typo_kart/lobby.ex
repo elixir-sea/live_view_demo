@@ -6,9 +6,9 @@ defmodule TypoKart.Lobby do
   #
   #
   # Players:
-  # 1. New player joins :lobby as game_id
+  # 1. New player joins :lobby as lobby_game_id
   #
-  # 2. When he clicks "join" on a game, game_id changes to something else.
+  # 2. When he clicks "join" on a game, lobby_game_id changes to something else.
   #    The player can also switch to a different game unless the game started.
   #
   # 3. Game starts, when all open slots for the game are taken or timer runs
@@ -24,7 +24,7 @@ defmodule TypoKart.Lobby do
   # 1. We also keep track of initializing/running/ended games.
   # 2. At any time, keep two new games in the pending pipeline.
   #
-  # game state transition --> pending --> playing --> end
+  # game state transition --> :pending --> :running --> :ended
   #
   # LiveView/Web:
   # The view process displays players in the queue or playing, 
@@ -46,7 +46,7 @@ defmodule TypoKart.Lobby do
 	id=GameMaster.new_game()
     {:ok, %{
           games: 
-            %{id => %{:status => :pending, :gamemaster_id => nil, :pos_1 => nil, :pos_2 => nil}
+            %{id => %{:status => :pending, :game_id => nil, :pos_1 => nil, :pos_2 => nil}
           },
           players: %{}
       }
@@ -67,7 +67,7 @@ defmodule TypoKart.Lobby do
   # 1. Locked players cannot change game
   # 2. When three players join, invoke "begin_game" and "lock players"
   #
-  def handle_call({:join_game, player_id, game_id, pos}, _from, lobby) do
+  def handle_call({:join_game, player_id, lobby_game_id, pos}, _from, lobby) do
 
     # Check that the player is not locked
     case lobby.players[player_id].lock do
@@ -85,13 +85,13 @@ defmodule TypoKart.Lobby do
          end
 
         lobby=lobby |>
-          put_in([:players, player_id, :game], game_id) |>
+          put_in([:players, player_id, :game], lobby_game_id) |>
           put_in([:players, player_id, :pos], pos) |>
-          put_in([:games, game_id, pos], lobby.players[player_id].player)
+          put_in([:games, lobby_game_id, pos], lobby.players[player_id].player)
 
         lobby =
            cond do
-             (lobby.games[game_id].pos_1 != nil && lobby.games[game_id].pos_2 != nil )  -> lobby |> start_game(game_id)
+             (lobby.games[lobby_game_id].pos_1 != nil && lobby.games[lobby_game_id].pos_2 != nil )  -> lobby |> start_game(lobby_game_id)
              true -> lobby
            end
 
@@ -103,15 +103,15 @@ defmodule TypoKart.Lobby do
   # 1. Change status of game to "ended"
   # 2. Move all players to lobby
   #
-  def handle_call({:game_ended, game_id}, _from, lobby) do
+  def handle_call({:game_ended, lobby_game_id}, _from, lobby) do
 
-    player1=lobby.games[game_id].pos_1
-    player2=lobby.games[game_id].pos_2
+    player1=lobby.games[lobby_game_id].pos_1
+    player2=lobby.games[lobby_game_id].pos_2
 
     lobby = lobby |>
          put_in([:players, player1, :lock], false) |>
          put_in([:players, player2, :lock], false) |>
-         put_in([:games, game_id, :status], :ended) 
+         put_in([:games, lobby_game_id, :status], :ended) 
             
     {:reply, lobby, lobby}
   end
@@ -141,12 +141,12 @@ defmodule TypoKart.Lobby do
     GenServer.call(__MODULE__, {:join_lobby, process_id, id})
   end
 
-  def join_game(player_id, game_id, pos) do
-    GenServer.call(__MODULE__, {:join_game, player_id, game_id, String.to_existing_atom(pos)})
+  def join_game(player_id, lobby_game_id, pos) do
+    GenServer.call(__MODULE__, {:join_game, player_id, lobby_game_id, String.to_existing_atom(pos)})
   end
 
-  def game_ended(game_id) do
-   GenServer.call(__MODULE__, {:game_ended, game_id})
+  def game_ended(lobby_game_id) do
+   GenServer.call(__MODULE__, {:game_ended, lobby_game_id})
   end
 
   # Listing functions
@@ -163,19 +163,19 @@ defmodule TypoKart.Lobby do
   end
 
 
-  defp start_game(lobby, game_id) do
+  defp start_game(lobby, lobby_game_id) do
 
     #
     # Add players in GameMaster
     #
-     player1=lobby.games[game_id].pos_1
-     player2=lobby.games[game_id].pos_2
+     player1=lobby.games[lobby_game_id].pos_1
+     player2=lobby.games[lobby_game_id].pos_2
      pid1=lobby.players[player1].process_id
      pid2=lobby.players[player2].process_id
 
    {:ok, course} = Courses.load("course2")
 
-        gamemaster_id=GameMaster.new_game(%Game{
+        game_id=GameMaster.new_game(%Game{
           players: [
             %Player{
               color: "orange",
@@ -191,22 +191,23 @@ defmodule TypoKart.Lobby do
 
     # Lock players and game
     lobby = lobby |>
-         put_in([:games, game_id, :gamemaster_id], gamemaster_id) |>
+         put_in([:games, lobby_game_id, :game_id], game_id) |>
          put_in([:players, player1, :lock], true) |>
          put_in([:players, player2, :lock], true) |>
-         put_in([:games, game_id, :status], :playing) 
+         put_in([:games, lobby_game_id, :status], :playing) 
 
     # Send messages to start game
-    send pid1, {:start_game, gamemaster_id, 0}
-    send pid2, {:start_game, gamemaster_id, 1}
+    {:ok, _} = GameMaster.start_game(game_id)
+    send pid1, {:start_game, game_id, 0}
+    send pid2, {:start_game, game_id, 1}
     IO.inspect "game started"
             
     #
     # Create another pending game
     #
-    game_id=UUID.uuid1()
-    game_details=%{:status => :pending, :gamemaster_id => nil, :pos_1 => nil, :pos_2 => nil}
-    lobby=lobby |> put_in([:games, game_id], game_details)
+    lobby_game_id=UUID.uuid1()
+    game_details=%{:status => :pending, :game_id => nil, :pos_1 => nil, :pos_2 => nil}
+    lobby=lobby |> put_in([:games, lobby_game_id], game_details)
 
     lobby
   end
