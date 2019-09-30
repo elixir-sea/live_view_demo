@@ -74,11 +74,17 @@ defmodule TypoKartWeb.RaceLive do
     else
       {:ok, assign(socket, games: %{}, players: %{}, id: "", lobby: true) }
     end
+
   end
 
   def handle_info(:tick, socket) do
-    %{games: games, players: players}=Lobby.list()
-    {:noreply, assign(socket, players: players, games: games) }
+    players=socket.assigns.players
+    player_id=socket.assigns.id
+    case players[player_id].lock do
+     true  -> { :noreply, socket}
+     false -> %{games: games, players: players}=Lobby.list()
+               {:noreply, assign(socket, players: players, games: games) }
+    end
   end
 
   def handle_info({:start_game, gamemaster_id, player_index}, socket) do
@@ -101,13 +107,11 @@ defmodule TypoKartWeb.RaceLive do
   def handle_event( "join", %{"game" => game_id, "pos" => pos} , socket) do
     player_id=socket.assigns.id
     %{games: games, players: players}=Lobby.join_game(player_id, game_id, pos)
-    if players[player_id].lock do
-      { :noreply, socket}
-    else
-      {:noreply, assign(socket, players: players, games: games) }
+    case players[player_id].lock do
+      true  -> { :noreply, socket}
+      false -> {:noreply, assign(socket, players: players, games: games) }
     end
   end
-
 
   def handle_event("key", %{"keyCode" => keyCode}, socket)
       when keyCode in @ignored_key_codes,
@@ -213,4 +217,3 @@ defmodule TypoKartWeb.RaceLive do
     Util.now_unix(:millisecond) - last_game_update >= @game_update_rate_limit_ms
   end
 end
-
