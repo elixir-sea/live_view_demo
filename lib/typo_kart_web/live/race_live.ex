@@ -183,11 +183,18 @@ defmodule TypoKartWeb.RaceLive do
         :end_game,
         %{
           assigns: %{
-            game_id: game_id
+            game_id: game_id,
+            game: %Game{players: players}
           }
         } = socket
       ) do
-    {:noreply, assign(socket, game: GameMaster.state() |> get_in([:games, game_id]))}
+
+    {winning_player, winning_player_number} =
+      Enum.with_index(players, 1)
+      |> Enum.sort(fn {player_a, _}, {player_b, _} -> player_a.points >= player_b.points end)
+      |> hd()
+
+    {:noreply, assign(socket, winning_player: winning_player, winning_player_number: winning_player_number, game: GameMaster.state() |> get_in([:games, game_id]))}
   end
 
   def handle_info(
