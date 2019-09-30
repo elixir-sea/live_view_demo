@@ -14,7 +14,7 @@ defmodule TypoKart.GameMaster do
 
   @player_colors ["orange", "blue", "green"]
 
-  @game_run_duration_seconds 180
+  @game_run_duration_seconds 60
 
   def start_link(_init \\ nil) do
     GenServer.start_link(__MODULE__, nil, name: __MODULE__)
