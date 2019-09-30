@@ -60,6 +60,10 @@ path.course.primary {
   stroke: var(--white);
 }
 
+.game-end-container{
+  background-color: white;
+}
+
 .course.secondary {
   stroke: var(--light-grey);
 }
