@@ -14,7 +14,7 @@ defmodule TypoKart.GameMaster do
 
   @player_colors ["orange", "blue", "green"]
 
-  @game_run_duration_seconds 180
+  @game_run_duration_seconds 60
 
   def start_link(_init \\ nil) do
     GenServer.start_link(__MODULE__, nil, name: __MODULE__)
@@ -45,12 +45,6 @@ defmodule TypoKart.GameMaster do
     else
       {:error, :invalid_player_color} ->
         {:reply, {:error, "invalid player color"}, state}
-
-      {:error, :duplicate_player_id} ->
-        {:reply, {:error, "duplicate player id"}, state}
-
-      {:error, :duplicate_player_color} ->
-        {:reply, {:error, "duplicate player color"}, state}
     end
   end
 
