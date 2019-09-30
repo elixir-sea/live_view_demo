@@ -45,6 +45,8 @@ defmodule TypoKart.GameMaster do
     else
       {:error, :invalid_player_color} ->
         {:reply, {:error, "invalid player color"}, state}
+    end
+  end
 
   def handle_call({:start_game, game_id}, _from, state) do
     with %Game{players: players} = game <- Kernel.get_in(state, [:games, game_id]),
