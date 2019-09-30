@@ -136,8 +136,12 @@ defmodule TypoKartWeb.RaceView do
     |> Enum.join(" ")
   end
 
-  @spec game_timer_formatted(Game.t()) :: binary()
-  def game_timer_formatted(%Game{} = game) do
+  @doc """
+  A second argument may be passed for its side-effect of triggering an update
+  of this helper's rendering into a template when that argument's value changes.
+  """
+  @spec game_timer_formatted(Game.t(), integer()) :: binary()
+  def game_timer_formatted(%Game{} = game, _ \\ 0) do
     with total_seconds <- GameMaster.time_remaining(game),
          minutes <- Integer.floor_div(total_seconds, 60),
          seconds <- Integer.mod(total_seconds, 60),

@@ -5,6 +5,7 @@ defmodule TypoKart.Player do
             color: "",
             label: "",
             points: 0,
+            view_pid: nil,
             cur_path_char_indices: [%PathCharIndex{}]
 
   @type t :: %__MODULE__{
@@ -12,6 +13,7 @@ defmodule TypoKart.Player do
           color: binary(),
           label: binary(),
           points: integer(),
+          view_pid: nil | pid(),
           cur_path_char_indices: list(PathCharIndex.t())
         }
 end

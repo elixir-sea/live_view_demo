@@ -2,7 +2,9 @@ defmodule TypoKartWeb.RaceLive do
   use Phoenix.LiveView
 
   alias TypoKart.{
+    Game,
     GameMaster,
+    Util,
     ViewChar
   }
 
@@ -48,37 +50,53 @@ defmodule TypoKartWeb.RaceLive do
     93
   ]
 
+  @game_update_rate_limit_ms 250
+  @game_update_auto_interval_ms 1000
+
   def render(assigns) do
     case assigns do
       %{browser_incompatible: true} ->
         TypoKartWeb.RaceView.render("incompatible.html", assigns)
 
-      _ ->
+      %{game: %Game{state: :ended}} ->
+        TypoKartWeb.RaceView.render("game_end.html", assigns)
+
+      %{game: %Game{}} ->
         TypoKartWeb.RaceView.render("index.html", assigns)
+
+      _ ->
+        TypoKartWeb.RaceView.render("error.html", assigns)
     end
   end
 
   def mount(%{game_id: game_id, player_index: player_index}, socket) do
     # Reminder: mount() is called twice, once for the static HTML mount,
     # and again when the websocket is mounted.
-    # We can test whether it's the latter case with:
-    #
-    # connected?(socket)
+    # We can test whether it's the latter case with connected?(socket)
 
-    {
-      :ok,
-      assign(
-        socket,
-        error_status: "",
-        game: GameMaster.state() |> get_in([:games, game_id]),
-        game_id: game_id,
-        player_index: player_index,
-        marker_rotation_offset: 90,
-        marker_translate_offset_x: -30,
-        marker_translate_offset_y: 30,
-        view_chars: []
-      )
-    }
+    if connected?(socket),
+      do: :timer.send_interval(@game_update_auto_interval_ms, self(), :update_game)
+
+    with %Game{} = game <- game_with_current_player_view(game_id, player_index) do
+      {
+        :ok,
+        assign(
+          socket,
+          error_status: "",
+          game: game,
+          game_id: game_id,
+          player_index: player_index,
+          marker_rotation_offset: 90,
+          marker_translate_offset_x: -30,
+          marker_translate_offset_y: 30,
+          last_game_update: Util.now_unix(:millisecond),
+          view_chars: []
+        )
+      }
+    else
+      _bad ->
+        {:ok, socket}
+    end
   end
 
   def handle_event("key", %{"keyCode" => keyCode}, socket)
@@ -100,7 +118,8 @@ defmodule TypoKartWeb.RaceLive do
         {:noreply,
          assign(socket,
            error_status: "",
-           game: game
+           game: game,
+           last_game_update: Util.now_unix(:millisecond)
          )}
 
       {:error, _} ->
@@ -137,4 +156,50 @@ defmodule TypoKartWeb.RaceLive do
   end
 
   def handle_event(_, _, socket), do: {:noreply, socket}
+
+  def handle_info(
+        :end_game,
+        %{
+          assigns: %{
+            game_id: game_id
+          }
+        } = socket
+      ) do
+    {:noreply, assign(socket, game: GameMaster.state() |> get_in([:games, game_id]))}
+  end
+
+  def handle_info(
+        :update_game,
+        %{
+          assigns: %{
+            game_id: game_id
+          }
+        } = socket
+      ) do
+    if should_update_game?(socket) do
+      {:noreply,
+       assign(socket,
+         last_game_update: Util.now_unix(:millisecond),
+         game: GameMaster.state() |> get_in([:games, game_id])
+       )}
+    else
+      {:noreply, socket}
+    end
+  end
+
+  def handle_info(_, _, socket), do: {:noreply, socket}
+
+  defp game_with_current_player_view(game_id, player_index)
+       when is_binary(game_id) and is_integer(player_index) do
+    with {:ok, %Game{} = game} <- GameMaster.register_player_view(game_id, player_index, self()) do
+      game
+    else
+      bad ->
+        bad
+    end
+  end
+
+  defp should_update_game?(%{assigns: %{last_game_update: last_game_update}}) do
+    Util.now_unix(:millisecond) - last_game_update >= @game_update_rate_limit_ms
+  end
 end
