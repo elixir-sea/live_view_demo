@@ -43,7 +43,7 @@ defmodule TypoKart.Lobby do
   @game_wait_time 30
 
   def init(_init_arg) do
-	id=GameMaster.new_game()
+        id=UUID.uuid1()
     {:ok, %{
           games:
             %{id => %{:status => :pending, :game_id => nil, :pos_1 => nil, :pos_2 => nil}
@@ -103,8 +103,9 @@ defmodule TypoKart.Lobby do
   # 1. Change status of game to "ended"
   # 2. Move all players to lobby
   #
-  def handle_call({:game_ended, lobby_game_id}, _from, lobby) do
+  def handle_call({:game_ended, game_id}, _from, lobby) do
 
+    lobby_game_id=lobby.games |> Enum.find(fn {_, val} -> val.game_id==game_id end) |> elem(0)
     player1=lobby.games[lobby_game_id].pos_1
     player2=lobby.games[lobby_game_id].pos_2
     pid1=lobby.players[player1].process_id
@@ -155,8 +156,8 @@ defmodule TypoKart.Lobby do
     GenServer.call(__MODULE__, {:join_game, player_id, lobby_game_id, String.to_existing_atom(pos)})
   end
 
-  def game_ended(lobby_game_id) do
-   GenServer.call(__MODULE__, {:game_ended, lobby_game_id})
+  def game_ended(game_id) do
+   GenServer.call(__MODULE__, {:game_ended, game_id})
   end
 
   # Listing functions
