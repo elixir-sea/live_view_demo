@@ -87,13 +87,13 @@ defmodule TypoKartWeb.RaceLive do
     end
   end
 
-  def handle_info({:start_game, gamemaster_id, player_index}, socket) do
+  def handle_info({:start_game, game_id, player_index}, socket) do
     { :noreply,
       assign(
         socket,
         error_status: "",
-        game: GameMaster.state() |> get_in([:games, gamemaster_id]),
-        game_id: gamemaster_id,
+        game: GameMaster.state() |> get_in([:games, game_id]),
+        game_id: game_id,
         player_index: player_index,
         marker_rotation_offset: 90,
        marker_translate_offset_x: -30,
