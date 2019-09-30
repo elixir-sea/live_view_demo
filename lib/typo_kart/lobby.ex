@@ -16,7 +16,7 @@ defmodule TypoKart.Lobby do
   #
   # 4. After game is over, player returns to the lobby.
   # 5. (maybe later: player can choose his color in game)
-  # 
+  #
   # player state transition --> lobby -> game -> locked-game -> lobby
   #
   # Games:
@@ -27,7 +27,7 @@ defmodule TypoKart.Lobby do
   # game state transition --> :pending --> :running --> :ended
   #
   # LiveView/Web:
-  # The view process displays players in the queue or playing, 
+  # The view process displays players in the queue or playing,
   # and games in the queue or in progress.
   #
 
@@ -45,7 +45,7 @@ defmodule TypoKart.Lobby do
   def init(_init_arg) do
 	id=GameMaster.new_game()
     {:ok, %{
-          games: 
+          games:
             %{id => %{:status => :pending, :game_id => nil, :pos_1 => nil, :pos_2 => nil}
           },
           players: %{}
@@ -76,7 +76,7 @@ defmodule TypoKart.Lobby do
 
        # Make player join game
        prev_game = lobby.players[player_id].game
-       prev_pos  = lobby.players[player_id].pos 
+       prev_pos  = lobby.players[player_id].pos
 
        lobby =
          case prev_pos do
@@ -115,8 +115,8 @@ defmodule TypoKart.Lobby do
          put_in([:players, player2, :lock], :lobby) |>
          put_in([:players, player1, :pos], nil) |>
          put_in([:players, player2, :pos], nil) |>
-         put_in([:games, lobby_game_id, :status], :ended) 
-            
+         put_in([:games, lobby_game_id, :status], :ended)
+
     {:reply, lobby, lobby}
   end
 
@@ -183,11 +183,13 @@ defmodule TypoKart.Lobby do
           players: [
             %Player{
               color: "orange",
-              label: player1
+              label: player1,
+              view_pid: pid1
             },
             %Player{
               color: "blue",
-              label: player2
+              label: player2,
+              view_pid: pid2
             }
           ],
           course: course
@@ -198,14 +200,14 @@ defmodule TypoKart.Lobby do
          put_in([:games, lobby_game_id, :game_id], game_id) |>
          put_in([:players, player1, :lock], true) |>
          put_in([:players, player2, :lock], true) |>
-         put_in([:games, lobby_game_id, :status], :playing) 
+         put_in([:games, lobby_game_id, :status], :playing)
 
     # Send messages to start game
     {:ok, _} = GameMaster.start_game(game_id)
     send pid1, {:start_game, game_id, 0}
     send pid2, {:start_game, game_id, 1}
     IO.inspect "game started"
-            
+
     #
     # Create another pending game
     #
