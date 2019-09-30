@@ -59,6 +59,9 @@ defmodule TypoKartWeb.RaceLive do
     %{browser_incompatible: true} ->
       TypoKartWeb.RaceView.render("incompatible.html", assigns)
 
+    %{game: %Game{state: :ended}} ->
+      TypoKartWeb.RaceView.render("game_end.html", assigns)
+
       _ ->
         TypoKartWeb.RaceView.render("index.html", assigns)
     end
