@@ -106,6 +106,11 @@ defmodule TypoKartWeb.RaceLive do
       ) }
   end
 
+  def handle_info({:game_ended}, socket) do
+     %{games: games, players: players}=Lobby.list()
+     {:noreply, assign(socket, players: players, games: games, lobby: true) }
+  end
+
 
   def handle_event( "join", %{"game" => game_id, "pos" => pos} , socket) do
     player_id=socket.assigns.id

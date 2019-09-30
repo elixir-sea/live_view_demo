@@ -107,6 +107,8 @@ defmodule TypoKart.Lobby do
 
     player1=lobby.games[lobby_game_id].pos_1
     player2=lobby.games[lobby_game_id].pos_2
+    pid1=lobby.players[player1].process_id
+    pid2=lobby.players[player2].process_id
 
     lobby = lobby |>
          put_in([:players, player1, :lock], false) |>
@@ -116,6 +118,10 @@ defmodule TypoKart.Lobby do
          put_in([:players, player1, :pos], nil) |>
          put_in([:players, player2, :pos], nil) |>
          put_in([:games, lobby_game_id, :status], :ended)
+
+    # Send messages to end game
+    send pid1, {:end_game}
+    send pid2, {:end_game}
 
     {:reply, lobby, lobby}
   end
