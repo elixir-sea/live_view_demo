@@ -1,18 +1,8 @@
-# TypoKart
+# TypoPaint
 
-The Typo~Krat~Kart project is an attempt to develop a fun typing game in elixir using LiveView, themed as a multi-player kart racing game. We have no idea how this will turn out, but as long as it's fun then who cares! Contributors to the starting line.
+The Typo~Piant~Paint project is an attempt to develop a fun typing game in elixir using LiveView.
 
-The goal of the project will be to enable focused opportunities for people in the Seattle area to collaborate on writing Elixir and LiveView code coming from different skill levels over the next two months.
-
-## MVP Primary Development Objectives
-
-More detailed requirements will be worked out as part of an [upcoming session](https://github.com/elixir-sea/typo_kart/wiki/In-Person-Availability#upcoming-sessions). Issues will be created to represent pieces of work that anybody can assign and work on.
-
-  * Build out a procedural course generator. Given a random seed, develop a racing course with twists and turns that creates a loop.
-
-  * Develop mechanics for getting around the map that involves typing. This will involve controlling acceleration and velocity based on typing speed, with some dynamic handicapping to keep the game fun for people of different skill levels.
-
-* Add components to the game that allow players to interact with each other in destructive ways. Make the game fun.
+The goal of the project will be to enable focused opportunities for people in the Seattle area to collaborate on writing Elixir and LiveView code coming from different skill levels.
 
 ## Development Instructions
 
@@ -28,16 +18,7 @@ Pull requests require a code review from at least one other contributor, but the
 
 ## LiveView Documentation
 
-Since LiveView isn't yet published to hex, there are no hosted docs yet. I find it useful to have the HTML documentation
-so here are the instructions for compiling the docs locally:
-
-```bash
-git clone git@github.com:phoenixframework/phoenix_live_view.git
-cd phoenix_live_view
-mix deps.get
-env MIX_ENV=docs mix docs
-open doc/index.html
-```
+[Phoenix LiveView on hex.pm](https://hexdocs.pm/phoenix_live_view/Phoenix.LiveView.html).
 
 ## Deployment
 
