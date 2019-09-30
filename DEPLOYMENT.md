@@ -10,7 +10,7 @@
     ```
 1. Push the Docker image
     ```
-    $ bin/docker-build
+    $ bin/docker-push
     ```
 1. Release the docker image to the heroku app:
     ```
