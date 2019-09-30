@@ -1,8 +1,8 @@
 <div id="game-info">
-<p>Time Remaining: <%= game_timer_formatted(@game) %> </p>
-<%= for {player, player_index} <- Enum.with_index(@game.players, 1) do %>
-<p><span class="<%= player.color %>">Player <%= player_index %> points:</span><span><%= player.points %></span></p>
-<% end %>
+  <p>Time Remaining: <%= game_timer_formatted(@game, @last_game_update) %> </p>
+  <%= for {player, player_index} <- Enum.with_index(@game.players, 1) do %>
+  <p><span class="<%= player.color %>">Player <%= player_index %> points:</span><span><%= player.points %></span></p>
+  <% end %>
 </div>
 <div id="the-course" class="<%= @error_status %>" phx-keyup="key" phx-target="window" phx-hook="CurrentText">
   <svg version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="<%= @game.course.view_box %>">
