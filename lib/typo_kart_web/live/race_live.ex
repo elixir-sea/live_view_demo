@@ -74,7 +74,8 @@ defmodule TypoKartWeb.RaceLive do
     # and again when the websocket is mounted.
     # We can test whether it's the latter case with connected?(socket)
 
-    if connected?(socket), do: :timer.send_interval(@game_update_auto_interval_ms, self(), :update_game)
+    if connected?(socket),
+      do: :timer.send_interval(@game_update_auto_interval_ms, self(), :update_game)
 
     with %Game{} = game <- game_with_current_player_view(game_id, player_index) do
       {
@@ -156,21 +157,31 @@ defmodule TypoKartWeb.RaceLive do
 
   def handle_event(_, _, socket), do: {:noreply, socket}
 
-  def handle_info(:end_game, %{
+  def handle_info(
+        :end_game,
+        %{
           assigns: %{
             game_id: game_id
-          }} = socket
-  ) do
+          }
+        } = socket
+      ) do
     {:noreply, assign(socket, game: GameMaster.state() |> get_in([:games, game_id]))}
   end
 
-  def handle_info(:update_game, %{
+  def handle_info(
+        :update_game,
+        %{
           assigns: %{
             game_id: game_id
-          }} = socket
-  ) do
+          }
+        } = socket
+      ) do
     if should_update_game?(socket) do
-      {:noreply, assign(socket, last_game_update: Util.now_unix(:millisecond), game: GameMaster.state() |> get_in([:games, game_id]))}
+      {:noreply,
+       assign(socket,
+         last_game_update: Util.now_unix(:millisecond),
+         game: GameMaster.state() |> get_in([:games, game_id])
+       )}
     else
       {:noreply, socket}
     end
@@ -178,7 +189,8 @@ defmodule TypoKartWeb.RaceLive do
 
   def handle_info(_, _, socket), do: {:noreply, socket}
 
-  defp game_with_current_player_view(game_id, player_index) when is_binary(game_id) and is_integer(player_index) do
+  defp game_with_current_player_view(game_id, player_index)
+       when is_binary(game_id) and is_integer(player_index) do
     with {:ok, %Game{} = game} <- GameMaster.register_player_view(game_id, player_index, self()) do
       game
     else
@@ -188,6 +200,6 @@ defmodule TypoKartWeb.RaceLive do
   end
 
   defp should_update_game?(%{assigns: %{last_game_update: last_game_update}}) do
-    (Util.now_unix(:millisecond) - last_game_update) >= @game_update_rate_limit_ms
+    Util.now_unix(:millisecond) - last_game_update >= @game_update_rate_limit_ms
   end
 end

@@ -1274,7 +1274,10 @@ defmodule TypoKart.GameMasterTest do
   test "regiser_player_view/2" do
     game_id = GameMaster.new_game()
     assert {:ok, _game, %Player{view_pid: nil}} = GameMaster.add_player(game_id)
-    assert {:ok, %Game{players: [%Player{view_pid: pid} | _rest]}} = GameMaster.register_player_view(game_id, 0, self())
+
+    assert {:ok, %Game{players: [%Player{view_pid: pid} | _rest]}} =
+             GameMaster.register_player_view(game_id, 0, self())
+
     assert self() == pid
   end
 

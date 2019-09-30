@@ -84,7 +84,8 @@ defmodule TypoKart.GameMaster do
   end
 
   def handle_call({:end_game, game_id}, _from, state) do
-    with %Game{state: :running, players: players} = game <- Kernel.get_in(state, [:games, game_id]),
+    with %Game{state: :running, players: players} = game <-
+           Kernel.get_in(state, [:games, game_id]),
          updated_game <- Map.put(game, :state, :ended),
          updated_state <- put_in(state, [:games, game_id], updated_game) do
       Enum.map(players, fn
@@ -94,6 +95,7 @@ defmodule TypoKart.GameMaster do
         %Player{view_pid: view_pid} ->
           send(view_pid, :end_game)
       end)
+
       {:reply, {:ok, updated_game}, updated_state}
     else
       nil ->
@@ -218,7 +220,8 @@ defmodule TypoKart.GameMaster do
   end
 
   @spec register_player_view(binary(), integer(), pid()) :: {:ok, Game.t()} | {:error, binary()}
-  def register_player_view(game_id, player_index, pid) when is_integer(player_index) and is_pid(pid) do
+  def register_player_view(game_id, player_index, pid)
+      when is_integer(player_index) and is_pid(pid) do
     GenServer.call(__MODULE__, {:register_player_view, game_id, player_index, pid})
   end
 
@@ -493,14 +496,14 @@ defmodule TypoKart.GameMaster do
   # Handle rounding without using floats
   def time_remaining(%Game{end_time: end_time}) do
     with end_time_ms <- DateTime.to_unix(end_time, :millisecond),
-      now_ms <- Util.now_unix(:millisecond),
-      diff_ms <- end_time_ms - now_ms,
-      floored <- Integer.floor_div(diff_ms, 1000) do
-        if Integer.mod(diff_ms, 1000) >= 500 do
-          floored + 1
-        else
-          floored
-        end
+         now_ms <- Util.now_unix(:millisecond),
+         diff_ms <- end_time_ms - now_ms,
+         floored <- Integer.floor_div(diff_ms, 1000) do
+      if Integer.mod(diff_ms, 1000) >= 500 do
+        floored + 1
+      else
+        floored
+      end
     end
   end
 
