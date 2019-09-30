@@ -1,4 +1,13 @@
 <div class="game-end-container">
 <h1>Game Over</h1>
+<p class="<%= @winning_player.color %>">Player <%= @winning_player_number %> Wins!</p>
+<h2>Scores</h2>
+
+<%= for {player, player_index} <- Enum.with_index(@game.players, 1) do %>
+<p>Player <%= player_index %>: <%= player.points %></p>
+<% end %>
+
+<p>
 <%= link "Go back", to: "/" %>
+</p>
 </div>
