@@ -490,9 +490,18 @@ defmodule TypoKart.GameMaster do
   def time_remaining(%Game{state: :ended}), do: 0
   def time_remaining(%Game{state: :pending}), do: 0
 
+  # Handle rounding without using floats
   def time_remaining(%Game{end_time: end_time}) do
-    DateTime.to_unix(end_time) -
-      DateTime.to_unix(Util.now())
+    with end_time_ms <- DateTime.to_unix(end_time, :millisecond),
+      now_ms <- Util.now_unix(:millisecond),
+      diff_ms <- end_time_ms - now_ms,
+      floored <- Integer.floor_div(diff_ms, 1000) do
+        if Integer.mod(diff_ms, 1000) >= 500 do
+          floored + 1
+        else
+          floored
+        end
+    end
   end
 
   defp unowned_class, do: "unowned"
