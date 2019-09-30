@@ -111,6 +111,10 @@ defmodule TypoKart.Lobby do
     lobby = lobby |>
          put_in([:players, player1, :lock], false) |>
          put_in([:players, player2, :lock], false) |>
+         put_in([:players, player1, :game], :lobby) |>
+         put_in([:players, player2, :lock], :lobby) |>
+         put_in([:players, player1, :pos], nil) |>
+         put_in([:players, player2, :pos], nil) |>
          put_in([:games, lobby_game_id, :status], :ended) 
             
     {:reply, lobby, lobby}
