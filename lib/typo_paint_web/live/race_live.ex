@@ -111,6 +111,44 @@ defmodule TypoPaintWeb.RaceLive do
      {:noreply, assign(socket, players: players, games: games, lobby: true) }
   end
 
+  def handle_info(
+        :end_game,
+        %{
+          assigns: %{
+            game_id: game_id,
+            game: %Game{players: players}
+          }
+        } = socket
+      ) do
+
+    {winning_player, winning_player_number} =
+      Enum.with_index(players, 1)
+      |> Enum.sort(fn {player_a, _}, {player_b, _} -> player_a.points >= player_b.points end)
+      |> hd()
+
+    {:noreply, assign(socket, winning_player: winning_player, winning_player_number: winning_player_number, game: GameMaster.state() |> get_in([:games, game_id]))}
+  end
+
+  def handle_info(
+        :update_game,
+        %{
+          assigns: %{
+            game_id: game_id
+          }
+        } = socket
+      ) do
+    if should_update_game?(socket) do
+      {:noreply,
+       assign(socket,
+         last_game_update: Util.now_unix(:millisecond),
+         game: GameMaster.state() |> get_in([:games, game_id])
+       )}
+    else
+      {:noreply, socket}
+    end
+  end
+
+  def handle_info(_, _, socket), do: {:noreply, socket}
 
   def handle_event( "join", %{"game" => game_id, "pos" => pos} , socket) do
     player_id=socket.assigns.id
@@ -178,45 +216,6 @@ defmodule TypoPaintWeb.RaceLive do
   end
 
   def handle_event(_, _, socket), do: {:noreply, socket}
-
-  def handle_info(
-        :end_game,
-        %{
-          assigns: %{
-            game_id: game_id,
-            game: %Game{players: players}
-          }
-        } = socket
-      ) do
-
-    {winning_player, winning_player_number} =
-      Enum.with_index(players, 1)
-      |> Enum.sort(fn {player_a, _}, {player_b, _} -> player_a.points >= player_b.points end)
-      |> hd()
-
-    {:noreply, assign(socket, winning_player: winning_player, winning_player_number: winning_player_number, game: GameMaster.state() |> get_in([:games, game_id]))}
-  end
-
-  def handle_info(
-        :update_game,
-        %{
-          assigns: %{
-            game_id: game_id
-          }
-        } = socket
-      ) do
-    if should_update_game?(socket) do
-      {:noreply,
-       assign(socket,
-         last_game_update: Util.now_unix(:millisecond),
-         game: GameMaster.state() |> get_in([:games, game_id])
-       )}
-    else
-      {:noreply, socket}
-    end
-  end
-
-  def handle_info(_, _, socket), do: {:noreply, socket}
 
   defp should_update_game?(%{assigns: %{last_game_update: last_game_update}}) do
     Util.now_unix(:millisecond) - last_game_update >= @game_update_rate_limit_ms
