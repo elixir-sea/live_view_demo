@@ -54,18 +54,18 @@ defmodule TypoPaintWeb.RaceLive do
   @game_update_rate_limit_ms 250
 
   def render(assigns) do
-   case assigns do
-    %{browser_incompatible: true} ->
-      TypoPaintWeb.RaceView.render("incompatible.html", assigns)
+    case assigns do
+      %{browser_incompatible: true} ->
+        TypoPaintWeb.RaceView.render("incompatible.html", assigns)
 
-    %{game: %Game{state: :ended}} ->
-      TypoPaintWeb.RaceView.render("game_end.html", assigns)
+      %{game: %Game{state: :ended}} ->
+        TypoPaintWeb.RaceView.render("game_end.html", assigns)
 
-    %{lobby: true} ->
-      TypoPaintWeb.RaceView.render("lobby.html", assigns)
+      %{lobby: true} ->
+        TypoPaintWeb.RaceView.render("lobby.html", assigns)
 
-    %{game: %Game{}} ->
-      TypoPaintWeb.RaceView.render("game.html", assigns)
+      %{game: %Game{}} ->
+        TypoPaintWeb.RaceView.render("game.html", assigns)
 
       _ ->
         TypoPaintWeb.RaceView.render("error.html", assigns)
@@ -73,47 +73,49 @@ defmodule TypoPaintWeb.RaceLive do
   end
 
   def mount(_session, socket) do
-
     if connected?(socket) do
-      player_id=UUID.uuid1()
-      %{games: games, players: players}=Lobby.join_lobby(self(), player_id)
-      :timer.send_interval(  1_000, self(), :tick)
-      {:ok, assign(socket, games: games, players: players, id: player_id, lobby: true) }
+      player_id = UUID.uuid1()
+      %{games: games, players: players} = Lobby.join_lobby(self(), player_id)
+      :timer.send_interval(1_000, self(), :tick)
+      {:ok, assign(socket, games: games, players: players, id: player_id, lobby: true)}
     else
-      {:ok, assign(socket, games: %{}, players: %{}, id: "", lobby: true) }
+      {:ok, assign(socket, games: %{}, players: %{}, id: "", lobby: true)}
     end
-
   end
 
   def handle_info(:tick, socket) do
-    players=socket.assigns.players
-    player_id=socket.assigns.id
+    players = socket.assigns.players
+    player_id = socket.assigns.id
+
     case players[player_id].lock do
-     true  -> { :noreply, socket}
-     false -> %{games: games, players: players}=Lobby.list()
-               {:noreply, assign(socket, players: players, games: games) }
+      true ->
+        {:noreply, socket}
+
+      false ->
+        %{games: games, players: players} = Lobby.list()
+        {:noreply, assign(socket, players: players, games: games)}
     end
   end
 
   def handle_info({:start_game, game_id, player_index}, socket) do
-    { :noreply,
-      assign(
-        socket,
-        error_status: "",
-        game: GameMaster.state() |> get_in([:games, game_id]),
-        game_id: game_id,
-        player_index: player_index,
-        marker_rotation_offset: 90,
+    {:noreply,
+     assign(
+       socket,
+       error_status: "",
+       game: GameMaster.state() |> get_in([:games, game_id]),
+       game_id: game_id,
+       player_index: player_index,
+       marker_rotation_offset: 90,
        marker_translate_offset_x: -30,
-        marker_translate_offset_y: 30,
-        view_chars: [],
-        lobby: false
-      ) }
+       marker_translate_offset_y: 30,
+       view_chars: [],
+       lobby: false
+     )}
   end
 
   def handle_info({:game_ended}, socket) do
-     %{games: games, players: players}=Lobby.list()
-     {:noreply, assign(socket, players: players, games: games, lobby: true) }
+    %{games: games, players: players} = Lobby.list()
+    {:noreply, assign(socket, players: players, games: games, lobby: true)}
   end
 
   def handle_info(
@@ -125,13 +127,17 @@ defmodule TypoPaintWeb.RaceLive do
           }
         } = socket
       ) do
-
     {winning_player, winning_player_number} =
       Enum.with_index(players, 1)
       |> Enum.sort(fn {player_a, _}, {player_b, _} -> player_a.points >= player_b.points end)
       |> hd()
 
-    {:noreply, assign(socket, winning_player: winning_player, winning_player_number: winning_player_number, game: GameMaster.state() |> get_in([:games, game_id]))}
+    {:noreply,
+     assign(socket,
+       winning_player: winning_player,
+       winning_player_number: winning_player_number,
+       game: GameMaster.state() |> get_in([:games, game_id])
+     )}
   end
 
   def handle_info(
@@ -155,12 +161,13 @@ defmodule TypoPaintWeb.RaceLive do
 
   def handle_info(_, _, socket), do: {:noreply, socket}
 
-  def handle_event( "join", %{"game" => game_id, "pos" => pos} , socket) do
-    player_id=socket.assigns.id
-    %{games: games, players: players}=Lobby.join_game(player_id, game_id, pos)
+  def handle_event("join", %{"game" => game_id, "pos" => pos}, socket) do
+    player_id = socket.assigns.id
+    %{games: games, players: players} = Lobby.join_game(player_id, game_id, pos)
+
     case players[player_id].lock do
-      true  -> { :noreply, socket}
-      false -> {:noreply, assign(socket, players: players, games: games) }
+      true -> {:noreply, socket}
+      false -> {:noreply, assign(socket, players: players, games: games)}
     end
   end
 
