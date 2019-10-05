@@ -8,11 +8,11 @@
 use Mix.Config
 
 # Configures the endpoint
-config :typo_kart, TypoKartWeb.Endpoint,
+config :typo_paint, TypoPaintWeb.Endpoint,
   url: [host: "localhost"],
   secret_key_base: "cN0uRQESKBZoizHBwtUY5dNiLUC11Dhi+lo4Ctnthz5JCbSzMfDriNi7YvFdfSBR",
-  render_errors: [view: TypoKartWeb.ErrorView, accepts: ~w(html json)],
-  pubsub: [name: TypoKart.PubSub, adapter: Phoenix.PubSub.PG2],
+  render_errors: [view: TypoPaintWeb.ErrorView, accepts: ~w(html json)],
+  pubsub: [name: TypoPaint.PubSub, adapter: Phoenix.PubSub.PG2],
   live_view: [
     signing_salt: "lSyzobrdc1QaMyuQFbT2TP4mV+VkAmZ3+83wqGZ6uTsEurkM9agu4SXWRIULpShO"
   ]

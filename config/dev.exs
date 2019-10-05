@@ -6,7 +6,7 @@ use Mix.Config
 # The watchers configuration can be used to run external
 # watchers to your application. For example, we use it
 # with webpack to recompile .js and .css sources.
-config :typo_kart, TypoKartWeb.Endpoint,
+config :typo_paint, TypoPaintWeb.Endpoint,
   http: [port: 80],
   debug_errors: true,
   code_reloader: true,
@@ -46,14 +46,14 @@ config :typo_kart, TypoKartWeb.Endpoint,
 # different ports.
 
 # Watch static and templates for browser reloading.
-config :typo_kart, TypoKartWeb.Endpoint,
+config :typo_paint, TypoPaintWeb.Endpoint,
   live_reload: [
     patterns: [
       ~r"priv/static/.*(js|css|png|jpeg|jpg|gif|svg)$",
       ~r"priv/static/courses/.*(yml)$",
       ~r"priv/gettext/.*(po)$",
-      ~r"lib/typo_kart_web/(live|views)/.*(ex)$",
-      ~r"lib/typo_kart_web/templates/.*(eex)$",
+      ~r"lib/typo_paint_web/(live|views)/.*(ex)$",
+      ~r"lib/typo_paint_web/templates/.*(eex)$",
       ~r{lib/live_view/live/.*(ex)$}
     ]
   ]

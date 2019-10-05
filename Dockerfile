@@ -25,4 +25,4 @@ RUN cd assets && npm install && npm run deploy
 RUN mix compile
 RUN mix release
 
-CMD [ "_build/prod/rel/typo_kart/bin/typo_kart", "start" ]
+CMD [ "_build/prod/rel/typo_paint/bin/typo_paint", "start" ]

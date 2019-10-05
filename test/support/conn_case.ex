@@ -1,4 +1,4 @@
-defmodule TypoKartWeb.ConnCase do
+defmodule TypoPaintWeb.ConnCase do
   @moduledoc """
   This module defines the test case to be used by
   tests that require setting up a connection.
@@ -19,10 +19,10 @@ defmodule TypoKartWeb.ConnCase do
     quote do
       # Import conveniences for testing with connections
       use Phoenix.ConnTest
-      alias TypoKartWeb.Router.Helpers, as: Routes
+      alias TypoPaintWeb.Router.Helpers, as: Routes
 
       # The default endpoint for testing
-      @endpoint TypoKartWeb.Endpoint
+      @endpoint TypoPaintWeb.Endpoint
     end
   end
 

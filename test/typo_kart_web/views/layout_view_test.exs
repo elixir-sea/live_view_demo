@@ -1,3 +1,3 @@
-defmodule TypoKartWeb.LayoutViewTest do
-  use TypoKartWeb.ConnCase, async: true
+defmodule TypoPaintWeb.LayoutViewTest do
+  use TypoPaintWeb.ConnCase, async: true
 end

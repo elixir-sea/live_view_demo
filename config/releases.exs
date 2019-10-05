@@ -1,6 +1,6 @@
 import Config
 
-config :typo_kart, TypoKartWeb.Endpoint,
+config :typo_paint, TypoPaintWeb.Endpoint,
   url: [
     host: System.get_env("URL_HOST")
   ],
@@ -13,7 +13,7 @@ config :typo_kart, TypoKartWeb.Endpoint,
 # If you are doing OTP releases, you need to instruct Phoenix
 # to start each relevant endpoint:
 #
-#     config :typo_kart, TypoKartWeb.Endpoint, server: true
+#     config :typo_paint, TypoPaintWeb.Endpoint, server: true
 #
 # Then you can assemble a release by calling `mix release`.
 # See `mix help release` for more information.

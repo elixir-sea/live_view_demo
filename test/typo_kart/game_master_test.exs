@@ -1,7 +1,7 @@
-defmodule TypoKart.GameMasterTest do
-  use TypoKart.PlainCase
+defmodule TypoPaint.GameMasterTest do
+  use TypoPaint.PlainCase
 
-  alias TypoKart.{
+  alias TypoPaint.{
     Game,
     GameMaster,
     Player,

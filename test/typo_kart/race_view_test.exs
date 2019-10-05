@@ -1,7 +1,7 @@
-defmodule TypoKart.RaceViewTest do
-  use TypoKart.PlainCase
+defmodule TypoPaint.RaceViewTest do
+  use TypoPaint.PlainCase
 
-  alias TypoKart.{
+  alias TypoPaint.{
     Course,
     Game,
     GameMaster,
@@ -11,7 +11,7 @@ defmodule TypoKart.RaceViewTest do
     ViewChar
   }
 
-  alias TypoKartWeb.RaceView
+  alias TypoPaintWeb.RaceView
 
   setup do
     GameMaster.reset_all()
