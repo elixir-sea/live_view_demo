@@ -218,16 +218,6 @@ defmodule TypoPaintWeb.RaceLive do
 
   def handle_info(_, _, socket), do: {:noreply, socket}
 
-  defp game_with_current_player_view(game_id, player_index)
-       when is_binary(game_id) and is_integer(player_index) do
-    with {:ok, %Game{} = game} <- GameMaster.register_player_view(game_id, player_index, self()) do
-      game
-    else
-      bad ->
-        bad
-    end
-  end
-
   defp should_update_game?(%{assigns: %{last_game_update: last_game_update}}) do
     Util.now_unix(:millisecond) - last_game_update >= @game_update_rate_limit_ms
   end
