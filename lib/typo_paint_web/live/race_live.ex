@@ -52,7 +52,6 @@ defmodule TypoPaintWeb.RaceLive do
   ]
 
   @game_update_rate_limit_ms 250
-  @game_update_auto_interval_ms 1000
 
   def render(assigns) do
    case assigns do
