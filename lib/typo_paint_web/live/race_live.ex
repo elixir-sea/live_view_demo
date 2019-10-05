@@ -62,8 +62,14 @@ defmodule TypoPaintWeb.RaceLive do
     %{game: %Game{state: :ended}} ->
       TypoPaintWeb.RaceView.render("game_end.html", assigns)
 
+    %{lobby: true} ->
+      TypoPaintWeb.RaceView.render("lobby.html", assigns)
+
+    %{game: %Game{}} ->
+      TypoPaintWeb.RaceView.render("game.html", assigns)
+
       _ ->
-        TypoPaintWeb.RaceView.render("index.html", assigns)
+        TypoPaintWeb.RaceView.render("error.html", assigns)
     end
   end
 
