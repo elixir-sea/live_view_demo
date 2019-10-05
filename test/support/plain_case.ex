@@ -1,3 +1,3 @@
-defmodule TypoKart.PlainCase do
+defmodule TypoPaint.PlainCase do
   use ExUnit.CaseTemplate
 end

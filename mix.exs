@@ -1,9 +1,9 @@
-defmodule TypoKart.MixProject do
+defmodule TypoPaint.MixProject do
   use Mix.Project
 
   def project do
     [
-      app: :typo_kart,
+      app: :typo_paint,
       version: "0.1.0",
       elixir: "~> 1.9.1",
       elixirc_paths: elixirc_paths(Mix.env()),
@@ -18,7 +18,7 @@ defmodule TypoKart.MixProject do
   # Type `mix help compile.app` for more information.
   def application do
     [
-      mod: {TypoKart.Application, []},
+      mod: {TypoPaint.Application, []},
       extra_applications: [:logger, :runtime_tools]
     ]
   end
