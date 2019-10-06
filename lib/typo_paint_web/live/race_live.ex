@@ -98,18 +98,22 @@ defmodule TypoPaintWeb.RaceLive do
   end
 
   def handle_info({:start_game, game_id, player_index}, socket) do
+    game = GameMaster.state() |> get_in([:games, game_id])
+
     {:noreply,
      assign(
        socket,
        error_status: "",
-       game: GameMaster.state() |> get_in([:games, game_id]),
+       game: game,
        game_id: game_id,
        player_index: player_index,
        marker_rotation_offset: 90,
        marker_translate_offset_x: -30,
        marker_translate_offset_y: 30,
        view_chars: [],
-       lobby: false
+       lobby: false,
+       last_game_update: 0,
+       seconds_remaining: GameMaster.time_remaining(game)
      )}
   end
 
@@ -140,26 +144,20 @@ defmodule TypoPaintWeb.RaceLive do
      )}
   end
 
-  def handle_info(
-        :update_game,
-        %{
-          assigns: %{
-            game_id: game_id
-          }
-        } = socket
-      ) do
+  def handle_info(_, _, socket), do: {:noreply, socket}
+
+  def handle_cast({:game_updated, %Game{} = game, seconds_remaining}, socket) do
     if should_update_game?(socket) do
       {:noreply,
        assign(socket,
          last_game_update: Util.now_unix(:millisecond),
-         game: GameMaster.state() |> get_in([:games, game_id])
+         seconds_remaining: seconds_remaining,
+         game: game
        )}
     else
       {:noreply, socket}
     end
   end
-
-  def handle_info(_, _, socket), do: {:noreply, socket}
 
   def handle_event("join", %{"game" => game_id, "pos" => pos}, socket) do
     player_id = socket.assigns.id

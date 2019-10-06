@@ -136,22 +136,16 @@ defmodule TypoPaintWeb.RaceView do
     |> Enum.join(" ")
   end
 
-  @doc """
-  A second argument may be passed for its side-effect of triggering an update
-  of this helper's rendering into a template when that argument's value changes.
-  """
-  @spec game_timer_formatted(Game.t(), integer()) :: binary()
-  def game_timer_formatted(%Game{} = game, _ \\ 0) do
-    with total_seconds <- GameMaster.time_remaining(game),
-         minutes <- Integer.floor_div(total_seconds, 60),
-         seconds <- Integer.mod(total_seconds, 60),
-         do:
-           Enum.join(
-             [
-               String.pad_leading("#{minutes}", 2, "0"),
-               String.pad_leading("#{seconds}", 2, "0")
-             ],
-             ":"
-           )
+  @spec game_timer_formatted(integer()) :: binary()
+  def game_timer_formatted(seconds_remaining) when is_integer(seconds_remaining) do
+    minutes = Integer.floor_div(seconds_remaining, 60)
+    seconds = Integer.mod(seconds_remaining, 60)
+    Enum.join(
+      [
+        String.pad_leading("#{minutes}", 2, "0"),
+        String.pad_leading("#{seconds}", 2, "0")
+      ],
+      ":"
+    )
   end
 end
