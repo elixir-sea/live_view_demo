@@ -148,4 +148,10 @@ defmodule TypoPaintWeb.RaceView do
       ":"
     )
   end
+
+  @spec timer_width_percent(integer(), Game.t()) :: binary()
+  def timer_width_percent(seconds_remaining, %Game{game_duration_seconds: game_duration_seconds})
+    when is_integer(seconds_remaining) do
+      "#{(seconds_remaining / game_duration_seconds) * 100}%"
+  end
 end

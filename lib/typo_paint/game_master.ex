@@ -14,7 +14,7 @@ defmodule TypoPaint.GameMaster do
 
   @player_colors ["orange", "blue", "green"]
 
-  @game_run_duration_seconds 60
+  @game_duration_seconds 60
   @game_update_period 1_000
 
   def start_link(_init \\ nil) do
@@ -56,15 +56,15 @@ defmodule TypoPaint.GameMaster do
   end
 
   def handle_call({:start_game, game_id}, _from, state) do
-    with %Game{players: players} = game <- Kernel.get_in(state, [:games, game_id]),
+    with %Game{players: players, game_duration_seconds: game_duration_seconds} = game <- Kernel.get_in(state, [:games, game_id]),
          now <- Util.now(),
-         end_time <- DateTime.add(now, @game_run_duration_seconds, :second),
+         end_time <- DateTime.add(now, game_duration_seconds, :second),
          {:ok, timer} <- :timer.send_interval(@game_update_period, __MODULE__, {:notify_game_listeners, game_id}),
          updated_game <- %Game{ game | state: :running, end_time: end_time, timer: timer},
          updated_state <- put_in(state, [:games, game_id], updated_game) do
       case {game.state, length(players)} do
         {:pending, player_count} when player_count > 0 ->
-          :timer.apply_after(@game_run_duration_seconds * 1000, __MODULE__, :end_game, [game_id])
+          :timer.apply_after(game_duration_seconds * 1000, __MODULE__, :end_game, [game_id])
           {:reply, {:ok, updated_game}, updated_state}
 
         {_, 0} ->
@@ -631,6 +631,7 @@ defmodule TypoPaint.GameMaster do
     |> initialize_char_ownership()
     |> initialize_starting_positions()
     |> initialize_players_id_color()
+    |> Map.put(:game_duration_seconds, @game_duration_seconds)
   end
 
   defp update_game(
