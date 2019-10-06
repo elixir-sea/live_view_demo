@@ -30,7 +30,7 @@ defmodule TypoPaint.GameMaster do
 
   def handle_info({:notify_game_listeners, game_id}, state) do
     %Game{} = game = get_in(state, [:games, game_id])
-    notify_game_listeners(game_id, game)
+    notify_game_listeners(game)
     {:noreply, state}
   end
 
@@ -126,7 +126,7 @@ defmodule TypoPaint.GameMaster do
            Enum.find(cur_path_char_indices, &(char_from_course(course, &1) == key_code)),
          %Game{} = updated_game <- update_game(game, valid_index, player_index),
          updated_state <- put_in(state, [:games, game_id], updated_game) do
-      notify_game_listeners(game_id, updated_game)
+      notify_game_listeners(updated_game)
       {:reply, {:ok, updated_game}, updated_state}
     else
       %Game{} ->
@@ -678,11 +678,11 @@ defmodule TypoPaint.GameMaster do
     |> Map.put(:players, updated_players)
   end
 
-  defp notify_game_listeners(game_id, %Game{players: players} = game) when is_binary(game_id) do
+  defp notify_game_listeners(%Game{players: players} = game) do
     players
     |> Enum.each(fn
       %Player{view_pid: view_pid} when is_pid(view_pid) ->
-        GenServer.cast(view_pid, {:game_updated, game, time_remaining(game)})
+        GenServer.cast(view_pid, {:game_updated, game})
 
       %Player{view_pid: nil} ->
         nil

@@ -146,12 +146,12 @@ defmodule TypoPaintWeb.RaceLive do
 
   def handle_info(_, _, socket), do: {:noreply, socket}
 
-  def handle_cast({:game_updated, %Game{} = game, seconds_remaining}, socket) do
+  def handle_cast({:game_updated, %Game{} = game}, socket) do
     if should_update_game?(socket) do
       {:noreply,
        assign(socket,
          last_game_update: Util.now_unix(:millisecond),
-         seconds_remaining: seconds_remaining,
+         seconds_remaining: GameMaster.time_remaining(game),
          game: game
        )}
     else
@@ -189,6 +189,7 @@ defmodule TypoPaintWeb.RaceLive do
          assign(socket,
            error_status: "",
            game: game,
+           seconds_remaining: GameMaster.time_remaining(game),
            last_game_update: Util.now_unix(:millisecond)
          )}
 
