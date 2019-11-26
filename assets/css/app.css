@@ -28,6 +28,16 @@
   margin: auto;
 }
 
+.game-timer-bar-container {
+  height: 20px;
+  border: 1px solid grey;
+}
+
+.game-timer-bar-remaining {
+  background-color: yellowgreen;
+  height: 100%;
+}
+
 text {
   font-size: 24pt;
   letter-spacing: 4px;
