@@ -185,47 +185,13 @@ defmodule TypoPaint.RaceViewTest do
   end
 
   @tag :game_timer_formatted
-  test "game_timer_formatted/1", %{now: now} do
-    assert "00:03" ==
-             RaceView.game_timer_formatted(%Game{
-               state: :running,
-               end_time: DateTime.add(now, 3, :second)
-             })
+  test "game_timer_formatted/1" do
+    assert "00:03" == RaceView.game_timer_formatted(3)
 
-    assert "01:12" ==
-             RaceView.game_timer_formatted(%Game{
-               state: :running,
-               end_time: DateTime.add(now, 72, :second)
-             })
+    assert "01:12" == RaceView.game_timer_formatted(72)
 
-    assert "02:33" ==
-             RaceView.game_timer_formatted(%Game{
-               state: :running,
-               end_time: DateTime.add(now, 153, :second)
-             })
+    assert "02:33" == RaceView.game_timer_formatted(153)
 
-    assert "02:03" ==
-             RaceView.game_timer_formatted(%Game{
-               state: :running,
-               end_time: DateTime.add(now, 123, :second)
-             })
-  end
-
-  @tag :game_timer_formatted
-  test "game_timer_formatted/1 when game is pending", %{now: now} do
-    assert "00:00" ==
-             RaceView.game_timer_formatted(%Game{
-               state: :pending,
-               end_time: DateTime.add(now, 3, :second)
-             })
-  end
-
-  @tag :game_timer_formatted
-  test "game_timer_formatted/1 when game is ended", %{now: now} do
-    assert "00:00" ==
-             RaceView.game_timer_formatted(%Game{
-               state: :ended,
-               end_time: DateTime.add(now, 3, :second)
-             })
+    assert "02:03" == RaceView.game_timer_formatted(123)
   end
 end

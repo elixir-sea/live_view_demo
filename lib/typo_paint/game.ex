@@ -9,6 +9,7 @@ defmodule TypoPaint.Game do
             end_time: DateTime.from_unix!(0),
             players: [],
             course: %Course{},
+            timer: nil,
             # two dimensional array:
             #   - level-1: corresponds to the list of paths in the course
             #   - level-2: corresponds to each char in that path
@@ -22,6 +23,7 @@ defmodule TypoPaint.Game do
           end_time: DateTime.t(),
           players: list(Player.t()),
           course: Course.t(),
+          timer: nil | {:interval, reference()},
           char_ownership: list(list(integer() | nil))
         }
 end

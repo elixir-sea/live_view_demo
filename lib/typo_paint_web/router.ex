@@ -17,7 +17,7 @@ defmodule TypoPaintWeb.Router do
   scope "/", TypoPaintWeb do
     pipe_through :browser
 
-    #get "/", PageController, :index
+    # get "/", PageController, :index
     live "/", RaceLive
     get "/game/:player_index", PageController, :start_game
     live "/lobby", RaceLive

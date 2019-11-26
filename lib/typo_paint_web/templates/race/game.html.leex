@@ -1,5 +1,5 @@
 <div id="game-info">
-<p>Time Remaining: <%= game_timer_formatted(@game) %> </p>
+<p>Time Remaining: <%= game_timer_formatted(@seconds_remaining) %> </p>
 <%= for {player, player_index} <- Enum.with_index(@game.players, 1) do %>
 <p><span class="<%= player.color %>">Player <%= player_index %> points:</span><span><%= player.points %></span></p>
 <% end %>

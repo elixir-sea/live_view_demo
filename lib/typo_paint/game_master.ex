@@ -15,6 +15,7 @@ defmodule TypoPaint.GameMaster do
   @player_colors ["orange", "blue", "green"]
 
   @game_run_duration_seconds 60
+  @game_update_period 1_000
 
   def start_link(_init \\ nil) do
     GenServer.start_link(__MODULE__, nil, name: __MODULE__)
@@ -25,6 +26,12 @@ defmodule TypoPaint.GameMaster do
      %{
        games: %{}
      }}
+  end
+
+  def handle_info({:notify_game_listeners, game_id}, state) do
+    %Game{} = game = get_in(state, [:games, game_id])
+    notify_game_listeners(game)
+    {:noreply, state}
   end
 
   def handle_call(:reset_all, _from, _state) do
@@ -52,7 +59,8 @@ defmodule TypoPaint.GameMaster do
     with %Game{players: players} = game <- Kernel.get_in(state, [:games, game_id]),
          now <- Util.now(),
          end_time <- DateTime.add(now, @game_run_duration_seconds, :second),
-         updated_game <- game |> Map.put(:state, :running) |> Map.put(:end_time, end_time),
+         {:ok, timer} <- :timer.send_interval(@game_update_period, __MODULE__, {:notify_game_listeners, game_id}),
+         updated_game <- %Game{ game | state: :running, end_time: end_time, timer: timer},
          updated_state <- put_in(state, [:games, game_id], updated_game) do
       case {game.state, length(players)} do
         {:pending, player_count} when player_count > 0 ->
@@ -78,10 +86,11 @@ defmodule TypoPaint.GameMaster do
   end
 
   def handle_call({:end_game, game_id}, _from, state) do
-    with %Game{state: :running, players: players} = game <-
+    with %Game{state: :running, players: players, timer: timer} = game <-
            Kernel.get_in(state, [:games, game_id]),
          updated_game <- Map.put(game, :state, :ended),
          updated_state <- put_in(state, [:games, game_id], updated_game) do
+      :timer.cancel(timer)
       Enum.map(players, fn
         %Player{view_pid: nil} ->
           nil
@@ -117,6 +126,7 @@ defmodule TypoPaint.GameMaster do
            Enum.find(cur_path_char_indices, &(char_from_course(course, &1) == key_code)),
          %Game{} = updated_game <- update_game(game, valid_index, player_index),
          updated_state <- put_in(state, [:games, game_id], updated_game) do
+      notify_game_listeners(updated_game)
       {:reply, {:ok, updated_game}, updated_state}
     else
       %Game{} ->
@@ -666,5 +676,16 @@ defmodule TypoPaint.GameMaster do
 
     update_char_ownership(game, valid_pci, current_player_index)
     |> Map.put(:players, updated_players)
+  end
+
+  defp notify_game_listeners(%Game{players: players} = game) do
+    players
+    |> Enum.each(fn
+      %Player{view_pid: view_pid} when is_pid(view_pid) ->
+        GenServer.cast(view_pid, {:game_updated, game})
+
+      %Player{view_pid: nil} ->
+        nil
+      end)
   end
 end
